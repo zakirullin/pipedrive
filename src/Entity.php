@@ -37,15 +37,9 @@ class Entity
         return $this;
     }
 
-
-    public function find($params)
-    {
-
-    }
-
     public function get()
     {
-        return $this->pipedrive->sendRequest($this, 'get');
+        return $this->pipedrive->process($this, 'get');
     }
 
     public function getAll()
@@ -64,18 +58,31 @@ class Entity
         $start = 0;
         do {
             $params = ['limit' => static::WALK_LIMIT, 'start' => $start];
-            $response = $this->pipedrive->sendRequest($this, 'get', [], $params, false);
+            $response = $this->pipedrive->sendRequest($this, 'get', [], $params);
+            $isPaginationExists = isset($response->additional_data->pagination);
             if ($response->success == 'true') {
-                if (isset($response->additional_data->pagination->next_start)) {
+                if ($isPaginationExists) {
                     $start = $response->additional_data->pagination->next_start;
                 }
-                if ($stop = $callback($response->data)) {
+
+                $terminate = false;
+                if (is_array($response->data)) {
+                    foreach ($response->data as $data) {
+                        $terminate = $callback($data);
+                    }
+                } else {
+                    $terminate = $callback($response->data);
+                }
+
+                if ($terminate) {
                     return false;
                 }
             } else {
                 return false;
             }
-        } while ($response->additional_data->pagination->more_items_in_collection);
+
+            $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
+        } while ($isMoreItems);
 
         return true;
     }
@@ -84,13 +91,14 @@ class Entity
     {
         $entity = (array)$entity;
 
-        return $this->pipedrive->sendRequest($this, 'post', $entity);
+        return $this->pipedrive->process($this, 'post', $entity);
     }
 
     // TODO exceptions
     public function update($entity)
     {
         $entity = (array)$entity;
+
         if ($this->getId() == null) {
             if (isset($entity['id'])) {
                 $this->setId($entity['id']);
@@ -99,10 +107,15 @@ class Entity
             }
         }
 
-        return $this->pipedrive->sendRequest($this, 'put', $entity);
+        return $this->pipedrive->process($this, 'put', $entity);
     }
 
     public function delete($entity)
+    {
+
+    }
+
+    public function find($params)
     {
 
     }
