@@ -89,17 +89,17 @@ class Pipedrive
 
     protected function buildApiUrl($entity, $params = [])
     {
-        $url = $this->apiUrl . $entity->getType();
-        if ($entity->getId() !== null) {
+        $url = $this->getApiUrl();
+
+        if ($parent = $entity->getParent()) {
+            $url .= "{$parent->getType()}/{$parent->getId()}/{$entity->getType()}";
+        } else {
             $url .= "/{$entity->getId()}";
         }
 
         $params['api_token'] = $this->apiToken;
         $url .= '?' . http_build_query($params);
 
-//        if ($relatedEntityName !== null) {
-//            $url .= '/' . $relatedEntityName;
-//        }
 
 //        $params['api_token'] = Yii::app()->params['pipedrive']['apiKey'];
 //        $url = HUrl::addParams($url, $params);

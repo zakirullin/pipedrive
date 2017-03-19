@@ -57,12 +57,14 @@ class Entity
     {
         $start = 0;
         do {
+            $terminate = true;
+
             $params = ['limit' => static::WALK_LIMIT, 'start' => $start];
             $response = $this->pipedrive->sendRequest($this, 'get', [], $params);
             $isPaginationExists = isset($response->additional_data->pagination);
-            $terminate = true;
+            $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
             if ($response->success == 'true') {
-                if ($isPaginationExists) {
+                if ($isMoreItems) {
                     $start = $response->additional_data->pagination->next_start;
                 }
 
@@ -78,7 +80,6 @@ class Entity
                 }
             }
 
-            $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
         } while (!$terminate && $isMoreItems);
     }
 
