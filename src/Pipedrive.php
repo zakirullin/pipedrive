@@ -28,17 +28,17 @@ class Pipedrive
         return $this;
     }
 
+    public function process($entity, $method, $data = [], $params = [])
+    {
+        return $this->processResponse($this->sendRequest($entity, $method, $data, $params));
+    }
+
     // TODO Checking for parents
-    public function sendRequest($entity, $method, $data = [], $params = [], $processResponse = true)
+    public function sendRequest($entity, $method, $data = [], $params = [])
     {
         $url = $this->buildApiUrl($entity, $params);
-        $response = HHttp::doJson($method, $url, $data);
 
-        if ($processResponse) {
-            return $this->processResponse($response);
-        } else {
-            return $response;
-        }
+        return HHttp::doJson($method, $url, $data);
     }
 
     // TODO add exception
