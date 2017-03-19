@@ -26,7 +26,7 @@ class Pipedrive
      */
     protected $fields;
 
-    public function __construct($apiToken, $fields = [], $apiUrl = 'https://api.pipedrive.com/v1/')
+    public function __construct($apiToken, $fields = [], $apiUrl = 'https://api.pipedrive.com/v1')
     {
         $this->apiToken = $apiToken;
         $this->fields = $fields;
@@ -43,7 +43,7 @@ class Pipedrive
     // TODO Checking for parents
     public function sendRequest($entity, $method, $data = [], $params = [])
     {
-        $url = $this->buildApiUrl($entity, $params);
+        $url = $this->buildApiUrl($entity, $params, $method);
 
         return HHttp::doJson($method, $url, $data);
     }
@@ -94,19 +94,21 @@ class Pipedrive
         $this->fields = $fields;
     }
 
-    protected function buildApiUrl($entity, $params = [])
+    protected function buildApiUrl($entity, $params = [], $method = null)
     {
         $url = $this->getApiUrl();
 
-        if ($parent = $entity->getParent()) {
-            $url .= "{$parent->getType()}/{$parent->getId()}/{$entity->getType()}";
+        if ($parent = $entity->getParent() && $method == 'get') {
+            $url .= "/{$parent->getType()}/{$parent->getId()}/{$entity->getType()}";
         } else {
-            $url .= "/{$entity->getId()}";
+            $url .= "/{$entity->getType()}";
+            if ($entity->getId() !== null) {
+                $url .= "/{$entity->getId()}";
+            }
         }
 
         $params['api_token'] = $this->apiToken;
         $url .= '?' . http_build_query($params);
-
 
 //        $params['api_token'] = Yii::app()->params['pipedrive']['apiKey'];
 //        $url = HUrl::addParams($url, $params);

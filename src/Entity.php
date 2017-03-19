@@ -11,6 +11,16 @@ namespace Zakirullin\Pipedrive;
  */
 class Entity
 {
+    /**
+     * @var array $ids
+     */
+    protected static $idFields = [
+        'organizations' => 'org_id',
+        'deals' => 'deal_id',
+        'activities' => 'activity_id',
+        'persons' => 'person_id',
+        'users' => 'user_id',
+    ];
 
     /**
      * @var Pipedrive $pipedrive
@@ -94,6 +104,12 @@ class Entity
     {
         $entity = (array)$entity;
 
+        $parent = $this->getParent();
+        while ($parent) {
+            $entity[$parent->getIdField()] = $parent->getId();
+            $parent = $parent->getParent();
+        }
+
         return $this->pipedrive->process($this, 'post', $entity);
     }
 
@@ -157,6 +173,11 @@ class Entity
         $this->parent = $parent;
 
         return $this;
+    }
+
+    public function getIdField()
+    {
+        return static::$idFields[$this->type];
     }
 
     public function __call($type, $params)
