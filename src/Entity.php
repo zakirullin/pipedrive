@@ -79,7 +79,7 @@ class Entity
             }
 
             $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
-        } while ($isMoreItems && !$terminate);
+        } while (!$terminate && $isMoreItems);
     }
 
     public function create($entity)
