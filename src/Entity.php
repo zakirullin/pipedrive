@@ -45,7 +45,7 @@ class Entity
     public function getAll()
     {
         $entities = [];
-        $collect = function($entity) use ($entities) {
+        $collect = function($entity) use (&$entities) {
             $entities[] = $entity;
         };
         $this->walkAll($collect);
@@ -60,31 +60,26 @@ class Entity
             $params = ['limit' => static::WALK_LIMIT, 'start' => $start];
             $response = $this->pipedrive->sendRequest($this, 'get', [], $params);
             $isPaginationExists = isset($response->additional_data->pagination);
+            $terminate = true;
             if ($response->success == 'true') {
                 if ($isPaginationExists) {
                     $start = $response->additional_data->pagination->next_start;
                 }
 
-                $terminate = false;
                 if (is_array($response->data)) {
                     foreach ($response->data as $data) {
                         $terminate = $callback($data);
+                        if ($terminate) {
+                            break;
+                        }
                     }
                 } else {
                     $terminate = $callback($response->data);
                 }
-
-                if ($terminate) {
-                    return false;
-                }
-            } else {
-                return false;
             }
 
             $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
-        } while ($isMoreItems);
-
-        return true;
+        } while ($isMoreItems && !$terminate);
     }
 
     public function create($entity)
