@@ -1,0 +1,15 @@
+{
+    "name": "zakirullin/pipedrive",
+    "authors": [
+        {
+            "name": "Zakirullin Artem",
+            "email": "artem.zakirullin@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Zakirullin\\Pipedrive\\": "src"
+        }
+    }
+}
