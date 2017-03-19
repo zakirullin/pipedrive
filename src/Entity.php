@@ -2,6 +2,13 @@
 
 namespace Zakirullin\Pipedrive;
 
+/**
+ * @method Entity organizations
+ * @method Entity activities
+ * @method Entity deals
+ * @method Entity persons
+ * @method Entity notes
+ */
 class Entity
 {
 
