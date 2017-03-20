@@ -42,6 +42,11 @@ class Entity
      */
     protected $parent;
 
+    /**
+     * @var array $fields
+     */
+    protected $fields;
+
     const WALK_LIMIT = 500;
 
     public function __construct($pipedrive, $type, $id = null, $parent = null)
@@ -103,6 +108,7 @@ class Entity
     public function create($entity)
     {
         $entity = (array)$entity;
+        $entity = $this->addShortFields($entity);
 
         $parent = $this->getParent();
         while ($parent) {
@@ -110,7 +116,7 @@ class Entity
             $parent = $parent->getParent();
         }
 
-        return $this->pipedrive->process($this, 'post', $entity);
+        return $this->pipedrive->process($this, 'post', $entity)->id;
     }
 
     // TODO exceptions
@@ -163,6 +169,9 @@ class Entity
         return $this;
     }
 
+    /**
+     * @return null|Entity
+     */
     public function getParent()
     {
         return $this->parent;
@@ -175,6 +184,7 @@ class Entity
         return $this;
     }
 
+    // TODO exceptions
     public function getIdField()
     {
         return static::$idFields[$this->type];
@@ -183,5 +193,22 @@ class Entity
     public function __call($type, $params)
     {
         return new static($this->pipedrive, $type, isset($params[0]) ? $params[0] : null, $this);
+    }
+
+    private function addShortFields($entity)
+    {
+        $isObject = is_object($entity);
+        $entity = (array)$entity;
+        foreach ($entity as $key => $value) {
+            if ($field = $this->pipedrive->getShort($this, $key)) {
+                $entity[$field] = $value;
+            }
+        }
+
+        if ($isObject) {
+            $entity = (object)$entity;
+        }
+
+        return $entity;
     }
 }

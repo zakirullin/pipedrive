@@ -22,14 +22,14 @@ class Pipedrive
     protected $apiUrl;
 
     /**
-     * @var array $fields
+     * @var array $shortFields
      */
-    protected $fields;
+    protected $shortFields;
 
-    public function __construct($apiToken, $fields = [], $apiUrl = 'https://api.pipedrive.com/v1')
+    public function __construct($apiToken, $shortFields = [], $apiUrl = 'https://api.pipedrive.com/v1')
     {
         $this->apiToken = $apiToken;
-        $this->fields = $fields;
+        $this->shortFields = $shortFields;
         $this->apiUrl = $apiUrl;
 
         return $this;
@@ -61,7 +61,7 @@ class Pipedrive
     // TODO excetpion
     public function __call($entityType, $params)
     {
-        return new Entity($this, $entityType, (isset($params[0])) ? $params[0] : null);
+        return new Entity($this, $entityType, (isset($params[0])) ? $params[0] : null, $this->shortFields);
     }
 
     public function getApiToken()
@@ -69,9 +69,15 @@ class Pipedrive
         return $this->apiToken;
     }
 
+    /**
+     * @param $apiToken
+     * @return $this
+     */
     public function setApiToken($apiToken)
     {
         $this->apiToken = $apiToken;
+
+        return $this;
     }
 
     public function getApiUrl()
@@ -79,21 +85,47 @@ class Pipedrive
         return $this->apiUrl;
     }
 
+    /**
+     * @param string $apiUrl
+     * @return $this
+     */
     public function setApiUrl($apiUrl)
     {
         $this->apiUrl = $apiUrl;
+
+        return $this;
     }
 
-    public function getFields()
+    public function getShortFields()
     {
-        return $this->fields;
+        return $this->shortFields;
     }
 
-    public function setFields($fields)
+    /**
+     * @param Entity $entity
+     * @param string $field
+     * @return null|string
+     */
+    public function getShortField($entity, $field)
     {
-        $this->fields = $fields;
+        return isset($this->shortFields[$entity->getType()][$field]) ? $this->shortFields[$entity->getType()][$field] : null;
     }
 
+    /**
+     * @param array $shortFields
+     * @return $this
+     */
+    public function setShortFields($shortFields)
+    {
+        $this->shortFields = $shortFields;
+    }
+
+    /**
+     * @param Entity $entity
+     * @param array $params
+     * @param null|string $method
+     * @return string
+     */
     protected function buildApiUrl($entity, $params = [], $method = null)
     {
         $url = $this->getApiUrl();
@@ -109,9 +141,6 @@ class Pipedrive
 
         $params['api_token'] = $this->apiToken;
         $url .= '?' . http_build_query($params);
-
-//        $params['api_token'] = Yii::app()->params['pipedrive']['apiKey'];
-//        $url = HUrl::addParams($url, $params);
 
         return $url;
     }
