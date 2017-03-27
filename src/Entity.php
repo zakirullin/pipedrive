@@ -2,133 +2,79 @@
 
 namespace Zakirullin\Pipedrive;
 
-/**
- * @property Entity organizations
- * @property Entity activities
- * @property Entity deals
- * @property Entity persons
- * @property Entity notes
- */
 class Entity
 {
-    /**
-     * @var array $ids
-     */
-    protected static $idFields = [
-        'organizations' => 'org_id',
-    ];
-
     /**
      * @var Pipedrive $pipedrive
      */
     protected $pipedrive;
 
     /**
-     * @var string $type
+     * @var EntityFilter
      */
-    protected $type;
+    protected $entityFilter;
 
     /**
-     * @var Entity $parent
+     * Entity constructor.
+     * @param Pipedrive $pipedrive
+     * @param EntityFilter $entityFilter
      */
-    protected $parent;
+    public function __construct($pipedrive, $entityFilter)
+    {
+        $this->setPipedrive($pipedrive);
+        $this->setEntityFilter($entityFilter);
+
+        return $this;
+    }
 
     /**
-     * @var int $id
+     * @return Pipedrive
      */
-    protected $id;
+    public function getPipedrive()
+    {
+        return $this->pipedrive;
+    }
 
     /**
-     * @var int|array $condition
+     * @param Pipedrive $pipedrive
+     * @return $this
      */
-    protected $condition;
-
-    const WALK_STEP = 500;
-
-    public function __construct($pipedrive, $type, $parent = null)
+    public function setPipedrive($pipedrive)
     {
         $this->pipedrive = $pipedrive;
-        $this->type = $type;
-        $this->parent = $parent;
 
         return $this;
     }
 
-    public function find($condition)
+    /**
+     * @return EntityFilter
+     */
+    public function getEntityFilter()
     {
-        $this->condition = $condition;
+        return $this->entityFilter;
+    }
 
-        if (is_int($condition)) {
-            $this->id = $condition;
-        }
+    /**
+     * @param EntityFilter $entityFilter
+     * @return $this
+     */
+    public function setEntityFilter($entityFilter)
+    {
+        $this->entityFilter = $entityFilter;
 
         return $this;
     }
 
-    public function one()
-    {
-        return $this->pipedrive->process($this, 'get');
-    }
-
-    public function all()
-    {
-        $entities = [];
-        $collect = function($entity) use (&$entities) {
-            $entities[] = $entity;
-        };
-        $this->walkAll($collect);
-
-        return $entities;
-    }
-
-    public function findOne($id)
-    {
-        $this->id = $id;
-
-        return $this->one();
-    }
-
-    public function findAll()
-    {
-
-    }
-
-    public function walkAll($callback)
-    {
-        $start = 0;
-        do {
-            $terminate = true;
-
-            $params = ['limit' => static::WALK_STEP, 'start' => $start];
-            $response = $this->pipedrive->sendRequest($this, 'get', [], $params);
-            $isPaginationExists = isset($response->additional_data->pagination);
-            $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
-            if ($response->success == 'true') {
-                if ($isMoreItems) {
-                    $start = $response->additional_data->pagination->next_start;
-                }
-
-                if (is_array($response->data)) {
-                    foreach ($response->data as $data) {
-                        $terminate = $callback($data);
-                        if ($terminate) {
-                            break;
-                        }
-                    }
-                } else {
-                    $terminate = $callback($response->data);
-                }
-            }
-
-        } while (!$terminate && $isMoreItems);
-    }
-
+    /**
+     * @param EntityFilter $entity
+     * @return mixed
+     */
     public function create($entity)
     {
         $entity = (array)$entity;
         $entity = $this->addShortFields($entity);
 
-        $parent = $this->getParent();
+        $parent = $this->entityFilter->getParent();
         while ($parent) {
             $entity[$parent->getIdField()] = $parent->getId();
             $parent = $parent->getParent();
@@ -138,11 +84,16 @@ class Entity
     }
 
     // TODO exceptions
-    public function update($entity)
+    /**
+     * @param EntityFilter $entity
+     * @return mixed
+     * @throws \Exception
+     */
+    public function update($entityFilter, $entity)
     {
         $entity = (array)$entity;
 
-        if ($this->getId() == null) {
+        if ($entityFilter->getId() == null) {
             if (isset($entity['id'])) {
                 $this->setId($entity['id']);
             } else {
@@ -153,95 +104,106 @@ class Entity
         return $this->pipedrive->process($this, 'put', $entity);
     }
 
-    public function delete($entity)
+    public function delete()
     {
 
-    }
-
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
-    }
-
-    public function getCondition()
-    {
-        return $this->condition;
-    }
-
-    public function setCondition($condition)
-    {
-        $this->condition = $condition;
-    }
-
-    public function getType()
-    {
-        return $this->type;
-    }
-
-
-    public function setType($type)
-    {
-        $this->type = $type;
-
-        return $this;
     }
 
     /**
-     * @return null|Entity
+     * @param EntityFilter $entityFilter
+     * @return null|array
      */
-    public function getParent()
+    public function all()
     {
-        return $this->parent;
-    }
+        $root = $this->getEntityFilter()->getRoot();
+        $rootEntities = $this->getRootEntities($root);
 
-    public function setParent($parent)
-    {
-        $this->parent = $parent;
-
-        return $this;
-    }
-
-    /**
-     * Get related entity
-     *
-     * @param $type string
-     * @return static
-     */
-    public function __get($type)
-    {
-        return new static($this->pipedrive, $type, $this);
-    }
-
-    protected function getIdField()
-    {
-        if (isset(static::$idFields[$this->getType()])) {
-            return static::$idFields[$this->getType()];
+        if (!$root->getNext()) {
+            return $rootEntities;
         } else {
-            return $this->buildIdField();
+            $entities = [];
+            while ($next = $root->getNext()) {
+                $condition = $next->getCondition();
+                if ($condition && !is_array($condition)) {
+                    $id = $next->getCondition();
+                    $entities = [$id => $rootEntities[$id]];
+                } else {
+                    $entities = $this->getChildEntities($rootEntities, $root->getType(), $next->getType());
+                    if ($condition) {
+                        $entities = $this->filter($entities, $condition);
+                    }
+                }
+
+                $root = $next;
+                $rootEntities = $entities;
+            }
+
+            return $entities;
         }
     }
 
-    protected function buildIdField()
+    protected function filter(array $entities, $condition)
     {
-        return $this->getSingularType() . '_id';
+        $filteredEntities = [];
+        if ($condition && is_array($condition)) {
+            foreach ($entities as $entity) {
+                foreach ($condition as $field => $term) {
+                    $field = $this->getField($field);
+                    // TODO add exactly match
+                    if ($entity->$field == $term) {
+                        $filteredEntities[$entity->id] = $entity;
+                    }
+                }
+            }
+
+        } else if ($condition) {
+            foreach ($entities as $entity) {
+                if ($entity->id == $condition) {
+                    $filteredEntities[] = $entity;
+                }
+            }
+        } else {
+            $filteredEntities = $entities;
+        }
+
+        return $filteredEntities;
     }
 
-    protected function buildSearchField()
+    protected function getRootEntities(EntityFilter $root)
     {
-        return $this->getSingularType() . 'Field';
+        $entities = [];
+        $collect = function($entity) use (&$entities) {
+            $entities[$entity->id] = $entity;
+        };
+        $this->getPipedrive()->walkAll($root, $collect);
+
+        $condition = $root->getCondition();
+        if (is_array($condition)) {
+            $firstTermIsProcessedByPipedrive = !$root->getPrev();
+            if ($firstTermIsProcessedByPipedrive) {
+                array_shift($condition);
+            }
+            $entities = $this->filter($entities, $condition);
+        }
+
+        return $entities;
     }
 
-    protected function getSingularType()
+    protected function getChildEntities(array $parentEntities, $parentType, $childType)
     {
-        return substr($this->type, 0, -1);
+        $entities = [];
+        foreach ($parentEntities as $parentEntity) {
+            $parent = (new static($this->getPipedrive(), $parentType))->find($parentEntity->id);
+            $newEntities = (new static($this->getPipedrive(), $childType, $parent))->all();
+            foreach ($newEntities as $entity) {
+                $entities[$entity->id] = $entity;
+            }
+        }
+
+        return $entities;
     }
+
+
 
     protected function addShortFields($entity)
     {
@@ -258,5 +220,43 @@ class Entity
         }
 
         return $entity;
+    }
+
+    /**
+     * @param EntityFilter $entity
+     * @param string $field
+     * @return null|string
+     */
+    public function getField($field)
+    {
+        $fields = $this->getPipedrive()->getFields();
+        $type = $this->getEntityFilter()->getType();
+
+        return isset($fields[$type][$field]) ? $fields[$type][$field] : $field;
+    }
+
+    public function getIdField()
+    {
+        $idFields = $this->getPipedrive()->getIdFields();
+        if (isset($idFields[$this->entityFilter->getType()])) {
+            return $idFields[$this->entityFilter->getType()];
+        } else {
+            return $this->buildIdField();
+        }
+    }
+
+    public function buildIdField()
+    {
+        return $this->getSingularType() . '_id';
+    }
+
+    public function buildSearchField()
+    {
+        return $this->getSingularType() . 'Field';
+    }
+
+    public function getSingularType()
+    {
+        return substr($this->getEntityFilter()->getType(), 0, -1);
     }
 }
