@@ -3,11 +3,11 @@
 namespace Zakirullin\Pipedrive;
 
 /**
- * @method Entity organizations
- * @method Entity activities
- * @method Entity deals
- * @method Entity persons
- * @method Entity notes
+ * @property Entity organizations
+ * @property Entity activities
+ * @property Entity deals
+ * @property Entity persons
+ * @property Entity notes
  */
 class Pipedrive
 {
@@ -59,9 +59,9 @@ class Pipedrive
     }
 
     // TODO excetpion
-    public function __call($entityType, $params)
+    public function __get($entityType)
     {
-        return new Entity($this, $entityType, (isset($params[0])) ? $params[0] : null, $this->shortFields);
+        return new Entity($this, $entityType);
     }
 
     public function getApiToken()
@@ -130,7 +130,7 @@ class Pipedrive
     {
         $url = $this->getApiUrl();
 
-        if ($parent = $entity->getParent() && $method == 'get') {
+        if (($parent = $entity->getParent()) && $method == 'get') {
             $url .= "/{$parent->getType()}/{$parent->getId()}/{$entity->getType()}";
         } else {
             $url .= "/{$entity->getType()}";
