@@ -3,11 +3,11 @@
 namespace Zakirullin\Pipedrive;
 
 /**
- * @method Entity organizations
- * @method Entity activities
- * @method Entity deals
- * @method Entity persons
- * @method Entity notes
+ * @property Entity organizations
+ * @property Entity activities
+ * @property Entity deals
+ * @property Entity persons
+ * @property Entity notes
  */
 class Entity
 {
@@ -16,10 +16,6 @@ class Entity
      */
     protected static $idFields = [
         'organizations' => 'org_id',
-        'deals' => 'deal_id',
-        'activities' => 'activity_id',
-        'persons' => 'person_id',
-        'users' => 'user_id',
     ];
 
     /**
@@ -33,38 +29,48 @@ class Entity
     protected $type;
 
     /**
-     * @var integer $id
-     */
-    protected $id;
-
-    /**
      * @var Entity $parent
      */
     protected $parent;
 
     /**
-     * @var array $fields
+     * @var int $id
      */
-    protected $fields;
+    protected $id;
 
-    const WALK_LIMIT = 500;
+    /**
+     * @var int|array $condition
+     */
+    protected $condition;
 
-    public function __construct($pipedrive, $type, $id = null, $parent = null)
+    const WALK_STEP = 500;
+
+    public function __construct($pipedrive, $type, $parent = null)
     {
         $this->pipedrive = $pipedrive;
         $this->type = $type;
-        $this->id = $id;
         $this->parent = $parent;
 
         return $this;
     }
 
-    public function get()
+    public function find($condition)
+    {
+        $this->condition = $condition;
+
+        if (is_int($condition)) {
+            $this->id = $condition;
+        }
+
+        return $this;
+    }
+
+    public function one()
     {
         return $this->pipedrive->process($this, 'get');
     }
 
-    public function getAll()
+    public function all()
     {
         $entities = [];
         $collect = function($entity) use (&$entities) {
@@ -75,13 +81,25 @@ class Entity
         return $entities;
     }
 
+    public function findOne($id)
+    {
+        $this->id = $id;
+
+        return $this->one();
+    }
+
+    public function findAll()
+    {
+
+    }
+
     public function walkAll($callback)
     {
         $start = 0;
         do {
             $terminate = true;
 
-            $params = ['limit' => static::WALK_LIMIT, 'start' => $start];
+            $params = ['limit' => static::WALK_STEP, 'start' => $start];
             $response = $this->pipedrive->sendRequest($this, 'get', [], $params);
             $isPaginationExists = isset($response->additional_data->pagination);
             $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
@@ -140,11 +158,6 @@ class Entity
 
     }
 
-    public function find($params)
-    {
-
-    }
-
     public function getId()
     {
         return $this->id;
@@ -157,10 +170,21 @@ class Entity
         return $this;
     }
 
+    public function getCondition()
+    {
+        return $this->condition;
+    }
+
+    public function setCondition($condition)
+    {
+        $this->condition = $condition;
+    }
+
     public function getType()
     {
         return $this->type;
     }
+
 
     public function setType($type)
     {
@@ -184,23 +208,47 @@ class Entity
         return $this;
     }
 
-    // TODO exceptions
-    public function getIdField()
+    /**
+     * Get related entity
+     *
+     * @param $type string
+     * @return static
+     */
+    public function __get($type)
     {
-        return static::$idFields[$this->type];
+        return new static($this->pipedrive, $type, $this);
     }
 
-    public function __call($type, $params)
+    protected function getIdField()
     {
-        return new static($this->pipedrive, $type, isset($params[0]) ? $params[0] : null, $this);
+        if (isset(static::$idFields[$this->getType()])) {
+            return static::$idFields[$this->getType()];
+        } else {
+            return $this->buildIdField();
+        }
     }
 
-    private function addShortFields($entity)
+    protected function buildIdField()
+    {
+        return $this->getSingularType() . '_id';
+    }
+
+    protected function buildSearchField()
+    {
+        return $this->getSingularType() . 'Field';
+    }
+
+    protected function getSingularType()
+    {
+        return substr($this->type, 0, -1);
+    }
+
+    protected function addShortFields($entity)
     {
         $isObject = is_object($entity);
         $entity = (array)$entity;
         foreach ($entity as $key => $value) {
-            if ($field = $this->pipedrive->getShort($this, $key)) {
+            if ($field = $this->pipedrive->getShortField($this, $key)) {
                 $entity[$field] = $value;
             }
         }
