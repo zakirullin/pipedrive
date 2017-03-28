@@ -3,13 +3,17 @@
 namespace Zakirullin\Pipedrive;
 
 /**
- * @property EntityFilter organizations
- * @property EntityFilter activities
- * @property EntityFilter deals
- * @property EntityFilter persons
- * @property EntityFilter notes
+ * @property EntityQuery organizations
+ * @property EntityQuery activities
+ * @property EntityQuery deals
+ * @property EntityQuery persons
+ * @property EntityQuery notes
+ * @method array all
+ * @method array findAll
+ * @method Entity|null one
+ * @method Entity|null findOne
  */
-class EntityFilter
+class EntityQuery
 {
     /**
      * @var Pipedrive $entity
@@ -22,12 +26,12 @@ class EntityFilter
     protected $type;
 
     /**
-     * @var EntityFilter $prev
+     * @var EntityQuery $prev
      */
     protected $prev;
 
     /**
-     * @var EntityFilter $next
+     * @var EntityQuery $next
      */
     protected $next;
 
@@ -50,7 +54,7 @@ class EntityFilter
      * EntityFilter constructor.
      * @param Pipedrive $pipedrive
      * @param $type
-     * @param null|EntityFilter $prev
+     * @param null|EntityQuery $prev
      */
     public function __construct($pipedrive, $type, $prev = null)
     {
@@ -73,24 +77,6 @@ class EntityFilter
         }
 
         return $this;
-    }
-
-    public function one()
-    {
-
-    }
-
-    public function all()
-    {
-        return (new Entity($this->pipedrive, $this))->all();
-    }
-
-    public function findOne($condition, $exactMatch = true)
-    {
-    }
-
-    public function findAll($condition, $exactMatch = true)
-    {
     }
 
     public function create($entity)
@@ -135,7 +121,7 @@ class EntityFilter
     }
 
     /**
-     * @return null|EntityFilter
+     * @return null|EntityQuery
      */
     public function getPrev()
     {
@@ -143,7 +129,7 @@ class EntityFilter
     }
 
     /**
-     * @param null|EntityFilter $parent
+     * @param null|EntityQuery $parent
      * @return $this
      */
     public function setPrev($prev)
@@ -154,7 +140,7 @@ class EntityFilter
     }
 
     /**
-     * @return EntityFilter
+     * @return EntityQuery
      */
     public function getNext()
     {
@@ -162,7 +148,7 @@ class EntityFilter
     }
 
     /**
-     * @param EntityFilter $next
+     * @param EntityQuery $next
      * @return $this
      */
     public function setNext($next)
@@ -187,6 +173,14 @@ class EntityFilter
     public function getCondition()
     {
         return $this->condition;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isConditionValid()
+    {
+        return (is_array($this->getCondition()) && $this->getCondition()) || $this->getCondition();
     }
 
     public function setCondition($condition)
@@ -217,8 +211,17 @@ class EntityFilter
         return new static($this->getPipedrive(), $type, $this);
     }
 
+    public function __call($method, $params)
+    {
+        if (isset($params[0])) {
+            (new Entity($this))->$method($params[0]);
+        } else {
+            (new Entity($this))->$method();
+        }
+    }
+
     /**
-     * @return EntityFilter
+     * @return EntityQuery
      */
     public function getRoot()
     {
@@ -239,7 +242,7 @@ class EntityFilter
     {
         if (($prev = $this->getPrev()) && !$prev->getPrev()) {
             return (bool)$prev->getId();
-        } else if ($this->getType() && $this->getCondition()) {
+        } else if ($this->getType()) {
             return true;
         }
 
