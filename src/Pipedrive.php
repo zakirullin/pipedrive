@@ -56,6 +56,7 @@ class Pipedrive
     {
         $url = $this->buildApiUrl($entity, $params, $method);
 
+        echo $url;
         return HHttp::doJson($method, $url, $data);
     }
 
@@ -169,32 +170,32 @@ class Pipedrive
      * @param null|string $method
      * @return string
      */
-    public function buildApiUrl(EntityQuery $entityFilter, $params = [], $method = null)
+    public function buildApiUrl(EntityQuery $entityQuery, $params = [], $method = null)
     {
         $url = $this->getApiUrl();
 
-        $condition = $entityFilter->getCondition();
+        $condition = $entityQuery->getCondition();
         if (is_array($condition)) {
             if ($condition) {
                 // BuildSearchQuery
                 $url .= "/searchResults/field";
                 $params['term'] = array_values($condition)[0];
-                $params['field_type'] = $entityFilter->buildSearchField();
-                $params['field_key'] = $this->getField($entityFilter, array_keys($condition)[0]);
+                $params['field_type'] = $this->buildSearchField($entityQuery->getType());
+                $params['field_key'] = $this->getLongField($entityQuery->getType(), array_keys($condition)[0]);
                 $params['return_item_ids'] = 1;
-                $params['exact_match'] = (int)$entityFilter->isExactMatch();
+                $params['exact_match'] = (int)$entityQuery->isExactMatch();
             } else {
                 throw new \Exception('Condition is empty!');
             }
         } else {
-            if (($prev = $entityFilter->getPrev()) && $prev->getId() && $method == 'get') {
+            if (($prev = $entityQuery->getPrev()) && $prev->getId() && $method == 'get') {
                 // BuilRelationQuery
-                $url .= "/{$prev->getType()}/{$prev->getId()}/{$entityFilter->getType()}";
+                $url .= "/{$prev->getType()}/{$prev->getId()}/{$entityQuery->getType()}";
             } else {
                 // BuildQuery
-                $url .= "/{$entityFilter->getType()}";
-                if ($entityFilter->getId() !== null) {
-                    $url .= "/{$entityFilter->getId()}";
+                $url .= "/{$entityQuery->getType()}";
+                if ($entityQuery->getId() !== null) {
+                    $url .= "/{$entityQuery->getId()}";
                 }
             }
         }

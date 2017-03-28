@@ -81,10 +81,10 @@ class Entity
             foreach ($parents as $parent) {
                 $newEntity = $entity;
                 $newEntity[$this->getPipedrive()->getIdField($prev->getType())] = $parent->id;
-                $ids[] = $this->getPipedrive()->process($this, 'post', $entity)->id;
+                $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
             }
         } else {
-            $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), $method, $entity)->id;
+            $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
         }
 
         return $ids;
@@ -107,7 +107,7 @@ class Entity
         }
 
         if ($id = $this->getEntityQuery()->getId()) {
-            $ids[] = $this->getPipedrive()->process($this, 'put', $entity)->id;
+            $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity)->id;
         } else {
             if ($prev = $this->getEntityQuery()->getPrev()) {
                 $parentEntities = $prev->all();
@@ -128,6 +128,13 @@ class Entity
     public function delete()
     {
 
+    }
+
+    public function findAll($condition)
+    {
+        $this->getEntityQuery()->setCondition($condition);
+
+        return $this->all();
     }
 
     /**
@@ -165,6 +172,20 @@ class Entity
         }
 
         return [];
+    }
+
+    public function findOne($condition)
+    {
+        $this->getEntityQuery()->setCondition($condition);
+
+        return $this->one();
+    }
+
+    public function one()
+    {
+        $entities = $this->all();
+
+        return current($entities);
     }
 
     protected function filter(array $entities, $condition)
