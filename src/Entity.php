@@ -100,6 +100,9 @@ class Entity
     {
         $ids = [];
 
+        $entity = (array)$entity;
+        $this->addLongFields($entity);
+
         if ($this->getEntityQuery()->getId() == null) {
             if (isset($entity['id'])) {
                 $this->getEntityQuery()->setCondition($entity['id']);
@@ -188,8 +191,20 @@ class Entity
             foreach ($entities as $entity) {
                 foreach ($condition as $field => $term) {
                     // TODO add exactly match
-                    if ($entity->$field == $term) {
-                        $filteredEntities[$entity->id] = $entity;
+                    $value = $entity->$field;
+                    if (is_array($value)) {
+                        foreach ($value as $object) {
+                            if (is_object($object) && isset($object->value)) {
+                                if ($object->value == $term) {
+                                    $filteredEntities[$entity->id] = $entity;
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        if ($value == $term) {
+                            $filteredEntities[$entity->id] = $entity;
+                        }
                     }
                 }
             }
@@ -211,7 +226,9 @@ class Entity
     {
         $entities = [];
         $collect = function($entity) use (&$entities) {
-            $entities[$entity->id] = $this->addShortFields($entity);
+            if ($entity) {
+                $entities[$entity->id] = $this->addShortFields($entity);
+            }
         };
         $this->getPipedrive()->walkAll($root, $collect);
 
@@ -259,12 +276,16 @@ class Entity
 
         return $entity;
     }
-    
+
+    /**
+     * @param array $entity
+     * @return mixed
+     */
     protected function addLongFields($entity)
     {
         foreach ($entity as $key => $value) {
             $field = $this->getPipedrive()->getLongField($this->getEntityQuery()->getType(), $key);
-            $entity->$field = value;
+            $entity[$field] = $value;
         }
 
         return $entity;
