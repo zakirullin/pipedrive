@@ -8,6 +8,8 @@ namespace Zakirullin\Pipedrive;
  * @property EntityQuery deals
  * @property EntityQuery persons
  * @property EntityQuery notes
+ * @method array create
+ * @method array update
  * @method array all
  * @method array findAll
  * @method Entity|null one
@@ -34,11 +36,6 @@ class EntityQuery
      * @var EntityQuery $next
      */
     protected $next;
-
-    /**
-     * @var int $id
-     */
-    protected $id;
 
     /**
      * @var int|array $condition
@@ -77,16 +74,6 @@ class EntityQuery
         }
 
         return $this;
-    }
-
-    public function create($entity)
-    {
-        return (new Entity())->create($entity);
-    }
-
-    public function update($entity)
-    {
-        return (new Entity())->update($entity);
     }
 
     /**
@@ -160,14 +147,7 @@ class EntityQuery
 
     public function getId()
     {
-        return $this->id;
-    }
-
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
+        return is_array($this->getCondition()) ? null : $this->getCondition();
     }
 
     public function getCondition()
@@ -214,9 +194,9 @@ class EntityQuery
     public function __call($method, $params)
     {
         if (isset($params[0])) {
-            (new Entity($this))->$method($params[0]);
+            return (new Entity($this))->$method($params[0]);
         } else {
-            (new Entity($this))->$method();
+            return (new Entity($this))->$method();
         }
     }
 
