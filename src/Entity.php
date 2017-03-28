@@ -5,24 +5,43 @@ namespace Zakirullin\Pipedrive;
 class Entity
 {
     /**
-     * @var Pipedrive $pipedrive
+     * @var EntityQuery
+     */
+    protected $entityQuery;
+
+    /**
+     * @var Pipedrive
      */
     protected $pipedrive;
 
     /**
-     * @var EntityFilter
-     */
-    protected $entityFilter;
-
-    /**
      * Entity constructor.
      * @param Pipedrive $pipedrive
-     * @param EntityFilter $entityFilter
+     * @param EntityQuery $entityFilter
      */
-    public function __construct($pipedrive, $entityFilter)
+    public function __construct($entityQuery)
     {
-        $this->setPipedrive($pipedrive);
-        $this->setEntityFilter($entityFilter);
+        $this->setEntityQuery($entityQuery);
+        $this->setPipedrive($entityQuery->getPipedrive());
+
+        return $this;
+    }
+    
+    /**
+     * @return EntityQuery
+     */
+    public function getEntityQuery()
+    {
+        return $this->entityQuery;
+    }
+
+    /**
+     * @param EntityQuery $entityQuery
+     * @return $this
+     */
+    public function setEntityQuery($entityQuery)
+    {
+        $this->entityQuery = $entityQuery;
 
         return $this;
     }
@@ -42,66 +61,68 @@ class Entity
     public function setPipedrive($pipedrive)
     {
         $this->pipedrive = $pipedrive;
-
+        
         return $this;
     }
 
     /**
-     * @return EntityFilter
-     */
-    public function getEntityFilter()
-    {
-        return $this->entityFilter;
-    }
-
-    /**
-     * @param EntityFilter $entityFilter
-     * @return $this
-     */
-    public function setEntityFilter($entityFilter)
-    {
-        $this->entityFilter = $entityFilter;
-
-        return $this;
-    }
-
-    /**
-     * @param EntityFilter $entity
-     * @return mixed
+     * @param EntityQuery $entity
+     * @return array
      */
     public function create($entity)
     {
         $entity = (array)$entity;
-        $entity = $this->addShortFields($entity);
+        $entity = $this->addLongFields($entity);
 
-        $parent = $this->entityFilter->getParent();
-        while ($parent) {
-            $entity[$parent->getIdField()] = $parent->getId();
-            $parent = $parent->getParent();
+        $ids = [];
+        $prev = $this->getEntityQuery()->getPrev();
+        if ($prev) {
+            $parents = $prev->all();
+            foreach ($parents as $parent) {
+                $newEntity = $entity;
+                $newEntity[$this->getPipedrive()->getIdField($prev->getType())] = $parent->id;
+                $ids[] = $this->getPipedrive()->process($this, 'post', $entity)->id;
+            }
+        } else {
+            $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), $method, $entity)->id;
         }
 
-        return $this->pipedrive->process($this, 'post', $entity)->id;
+        return $ids;
     }
 
     // TODO exceptions
     /**
-     * @param EntityFilter $entity
+     * @param EntityQuery $entity
      * @return mixed
      * @throws \Exception
      */
-    public function update($entityFilter, $entity)
+    public function update($entity)
     {
-        $entity = (array)$entity;
+        $ids = [];
 
-        if ($entityFilter->getId() == null) {
+        if ($this->getEntityQuery()->getId() == null) {
             if (isset($entity['id'])) {
-                $this->setId($entity['id']);
-            } else {
-                throw new \Exception('Unable to update entity without id');
+                $this->getEntityQuery()->setId($entity['id']);
             }
         }
 
-        return $this->pipedrive->process($this, 'put', $entity);
+        if ($id = $this->getEntityQuery()->getId()) {
+            $ids[] = $this->getPipedrive()->process($this, 'put', $entity)->id;
+        } else {
+            if ($prev = $this->getEntityQuery()->getPrev()) {
+                $parentEntities = $prev->all();
+                $entities = $this->getChildEntities($parentEntities, $prev->getType(), $this->getEntityQuery()->getType());
+                $entities = $this->filter($entities, $this->getEntityQuery()->getCondition());
+                foreach ($entities as $id => $value) {
+                    $entity['id'] = $id;
+                    $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity);
+                }
+            } else {
+                throw new \Exception("Entity can't be update without id");
+            }
+        }
+
+        return $ids;
     }
 
     public function delete()
@@ -110,28 +131,30 @@ class Entity
     }
 
     /**
-     * @param EntityFilter $entityFilter
-     * @return null|array
+     * @param EntityQuery $entityQuery
+     * @return array|null
      */
     public function all()
     {
-        $root = $this->getEntityFilter()->getRoot();
+        $root = $this->getEntityQuery()->getRoot();
         $rootEntities = $this->getRootEntities($root);
 
         if (!$root->getNext()) {
             return $rootEntities;
-        } else {
+        } else if ($rootEntities) {
             $entities = [];
             while ($next = $root->getNext()) {
-                $condition = $next->getCondition();
-                if ($condition && !is_array($condition)) {
-                    $id = $next->getCondition();
-                    $entities = [$id => $rootEntities[$id]];
-                } else {
-                    $entities = $this->getChildEntities($rootEntities, $root->getType(), $next->getType());
-                    if ($condition) {
-                        $entities = $this->filter($entities, $condition);
+                if ($next->isConditionValid()) {
+                    if ($id = $next->getId()) {
+                        $entities = [$id => $rootEntities[$id]];
+                    } else {
+                        $entities = $this->getChildEntities($rootEntities, $root->getType(), $next->getType());
+                        if ($entities) {
+                            $entities = $this->filter($entities, $next->getCondition());
+                        }
                     }
+                } else {
+                    throw new \Exception('Condition is not valid!');
                 }
 
                 $root = $next;
@@ -140,6 +163,8 @@ class Entity
 
             return $entities;
         }
+
+        return [];
     }
 
     protected function filter(array $entities, $condition)
@@ -169,13 +194,22 @@ class Entity
         return $filteredEntities;
     }
 
-    protected function getRootEntities(EntityFilter $root)
+    protected function getRootEntities(EntityQuery $root)
     {
         $entities = [];
         $collect = function($entity) use (&$entities) {
             $entities[$entity->id] = $entity;
         };
         $this->getPipedrive()->walkAll($root, $collect);
+
+        $mustRetrieve = is_array($root->getCondition()) && !$root->getNext();
+        if ($mustRetrieve) {
+            foreach ($entities as $id => $entity) {
+                $pipedrive = $this->getPipedrive();
+                $type = $this->getEntityQuery()->getType();
+                $entities[$id] = $pipedrive->$type->findOne($id);
+            }
+        }
 
         $condition = $root->getCondition();
         if (is_array($condition)) {
@@ -203,60 +237,23 @@ class Entity
         return $entities;
     }
 
-
-
     protected function addShortFields($entity)
     {
-        $isObject = is_object($entity);
-        $entity = (array)$entity;
         foreach ($entity as $key => $value) {
-            if ($field = $this->pipedrive->getShortField($this, $key)) {
-                $entity[$field] = $value;
-            }
-        }
-
-        if ($isObject) {
-            $entity = (object)$entity;
+            $field = $this->getPipedrive()->getShortField($this->getEntityQuery()->getType(), $key);
+            $entity->$field = $value;
         }
 
         return $entity;
     }
-
-    /**
-     * @param EntityFilter $entity
-     * @param string $field
-     * @return null|string
-     */
-    public function getField($field)
+    
+    protected function addLongFields($entity)
     {
-        $fields = $this->getPipedrive()->getFields();
-        $type = $this->getEntityFilter()->getType();
-
-        return isset($fields[$type][$field]) ? $fields[$type][$field] : $field;
-    }
-
-    public function getIdField()
-    {
-        $idFields = $this->getPipedrive()->getIdFields();
-        if (isset($idFields[$this->entityFilter->getType()])) {
-            return $idFields[$this->entityFilter->getType()];
-        } else {
-            return $this->buildIdField();
+        foreach ($entity as $key => $value) {
+            $field = $this->getPipedrive()->getLongField($this->getEntityQuery()->getType(), $key);
+            $entity->$field = value;
         }
-    }
 
-    public function buildIdField()
-    {
-        return $this->getSingularType() . '_id';
-    }
-
-    public function buildSearchField()
-    {
-        return $this->getSingularType() . 'Field';
-    }
-
-    public function getSingularType()
-    {
-        return substr($this->getEntityFilter()->getType(), 0, -1);
+        return $entity;
     }
 }
