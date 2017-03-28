@@ -69,9 +69,6 @@ class EntityQuery
     {
         $this->setCondition($condition);
         $this->setExactMatch($exactMatch);
-        if (!is_array($condition)) {
-            $this->setId($condition);
-        }
 
         return $this;
     }

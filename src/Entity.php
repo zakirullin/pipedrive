@@ -102,24 +102,23 @@ class Entity
 
         if ($this->getEntityQuery()->getId() == null) {
             if (isset($entity['id'])) {
-                $this->getEntityQuery()->setId($entity['id']);
+                $this->getEntityQuery()->setCondition($entity['id']);
             }
         }
 
+        // TODO
         if ($id = $this->getEntityQuery()->getId()) {
             $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity)->id;
-        } else {
-            if ($prev = $this->getEntityQuery()->getPrev()) {
-                $parentEntities = $prev->all();
-                $entities = $this->getChildEntities($parentEntities, $prev->getType(), $this->getEntityQuery()->getType());
-                $entities = $this->filter($entities, $this->getEntityQuery()->getCondition());
-                foreach ($entities as $id => $value) {
-                    $entity['id'] = $id;
-                    $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity);
-                }
-            } else {
-                throw new \Exception("Entity can't be update without id");
+        } else if ($condition = $this->getEntityQuery()->getCondition() || $this->getEntityQuery()->getPrev()) {
+            $entities = $this->all();
+//            array_shift($condition);
+//            $entities = $this->filter($entities, $condition);
+            foreach ($entities as $id => $value) {
+                $type = $this->getEntityQuery()->getType();
+                $ids[] = current($this->getPipedrive()->$type->find($id)->update($entity));
             }
+        } else {
+            throw new \Exception("Entity can't be update without id");
         }
 
         return $ids;
@@ -130,7 +129,7 @@ class Entity
 
     }
 
-    public function findAll($condition)
+    public function findAll($condition = null)
     {
         $this->getEntityQuery()->setCondition($condition);
 
@@ -151,18 +150,17 @@ class Entity
         } else if ($rootEntities) {
             $entities = [];
             while ($next = $root->getNext()) {
-                if ($next->isConditionValid()) {
-                    if ($id = $next->getId()) {
-                        $entities = [$id => $rootEntities[$id]];
-                    } else {
-                        $entities = $this->getChildEntities($rootEntities, $root->getType(), $next->getType());
-                        if ($entities) {
-                            $entities = $this->filter($entities, $next->getCondition());
-                        }
-                    }
+                if ($id = $next->getId()) {
+                    $entities = [$id => $rootEntities[$id]];
                 } else {
-                    throw new \Exception('Condition is not valid!');
+                    $entities = $this->getChildEntities($rootEntities, $root->getType(), $next->getType());
+                    if ($entities) {
+                        $entities = $this->filter($entities, $next->getCondition());
+                    }
                 }
+//                } else {
+//                    throw new \Exception('Condition is not valid!');
+//                }
 
                 $root = $next;
                 $rootEntities = $entities;
@@ -194,7 +192,6 @@ class Entity
         if ($condition && is_array($condition)) {
             foreach ($entities as $entity) {
                 foreach ($condition as $field => $term) {
-                    $field = $this->getField($field);
                     // TODO add exactly match
                     if ($entity->$field == $term) {
                         $filteredEntities[$entity->id] = $entity;
@@ -219,7 +216,7 @@ class Entity
     {
         $entities = [];
         $collect = function($entity) use (&$entities) {
-            $entities[$entity->id] = $entity;
+            $entities[$entity->id] = $this->addShortFields($entity);
         };
         $this->getPipedrive()->walkAll($root, $collect);
 
@@ -228,7 +225,7 @@ class Entity
             foreach ($entities as $id => $entity) {
                 $pipedrive = $this->getPipedrive();
                 $type = $this->getEntityQuery()->getType();
-                $entities[$id] = $pipedrive->$type->findOne($id);
+                $entities[$id] = $this->addShortFields($pipedrive->$type->findOne($id));
             }
         }
 
@@ -248,8 +245,11 @@ class Entity
     {
         $entities = [];
         foreach ($parentEntities as $parentEntity) {
-            $parent = (new static($this->getPipedrive(), $parentType))->find($parentEntity->id);
-            $newEntities = (new static($this->getPipedrive(), $childType, $parent))->all();
+            $pipedrive = $this->getPipedrive();
+            $newEntities = $pipedrive->$parentType->find($parentEntity->id)->$childType->all();
+
+//            $parent = (new static($this->getEntityQuery(), $parentType))->find($parentEntity->id);
+//            $newEntities = (new static($this->getEntityQuery(), $childType, $parent))->all();
             foreach ($newEntities as $entity) {
                 $entities[$entity->id] = $entity;
             }
