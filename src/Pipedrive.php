@@ -56,7 +56,6 @@ class Pipedrive
     {
         $url = $this->buildApiUrl($entity, $params, $method);
 
-        echo $url;
         return HHttp::doJson($method, $url, $data);
     }
 
