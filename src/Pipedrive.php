@@ -176,10 +176,9 @@ class Pipedrive
         $condition = $entityQuery->getCondition();
         if (is_array($condition)) {
             if ($condition) {
-                // BuildSearchQuery
                 $url .= "/searchResults/field";
                 $params['term'] = array_values($condition)[0];
-                $params['field_type'] = $this->buildSearchField($entityQuery->getType());
+                $params['field_type'] = mb_strtolower(trim($this->buildSearchField($entityQuery->getType())));
                 $params['field_key'] = $this->getLongField($entityQuery->getType(), array_keys($condition)[0]);
                 $params['return_item_ids'] = 1;
                 $params['exact_match'] = (int)$entityQuery->isExactMatch();
@@ -188,10 +187,8 @@ class Pipedrive
             }
         } else {
             if (($prev = $entityQuery->getPrev()) && $prev->getId() && $method == 'get') {
-                // BuilRelationQuery
                 $url .= "/{$prev->getType()}/{$prev->getId()}/{$entityQuery->getType()}";
             } else {
-                // BuildQuery
                 $url .= "/{$entityQuery->getType()}";
                 if ($entityQuery->getId() !== null) {
                     $url .= "/{$entityQuery->getId()}";
@@ -204,7 +201,6 @@ class Pipedrive
 
         return $url;
     }
-
 
     /**
      * @param string $entityQuery
