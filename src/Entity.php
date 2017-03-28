@@ -109,6 +109,7 @@ class Entity
         if ($id = $this->getEntityQuery()->getId()) {
             $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity)->id;
         } else if ($condition = $this->getEntityQuery()->getCondition() || $this->getEntityQuery()->getPrev()) {
+            // TODO if no condition
             $entities = $this->all();
             foreach ($entities as $id => $value) {
                 $type = $this->getEntityQuery()->getType();
@@ -216,11 +217,10 @@ class Entity
 
         $mustRetrieve = is_array($root->getCondition()) && !$root->getNext();
         if ($mustRetrieve) {
-            die('yes');
             foreach ($entities as $id => $entity) {
                 $pipedrive = $this->getPipedrive();
-                $type = $this->getEntityQuery()->getType();
-                $entities[$id] = $this->addShortFields($pipedrive->$type->findOne($id));
+                $type = $root->getType();
+                $entities[$id] = $pipedrive->$type->findOne($id);
             }
         }
 
