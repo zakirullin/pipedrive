@@ -3,11 +3,11 @@
 namespace Zakirullin\Pipedrive;
 
 /**
- * @property EntityFilter organizations
- * @property EntityFilter activities
- * @property EntityFilter deals
- * @property EntityFilter persons
- * @property EntityFilter notes
+ * @property EntityQuery organizations
+ * @property EntityQuery activities
+ * @property EntityQuery deals
+ * @property EntityQuery persons
+ * @property EntityQuery notes
  */
 class Pipedrive
 {
@@ -45,8 +45,14 @@ class Pipedrive
         return $this;
     }
 
+
+    public function process($entityQuery, $method, $data = [])
+    {
+        return $this->processResponse($this->sendRequest($entityQuery, $method, $data));
+    }
+
     // TODO Checking for parents
-    public function sendRequest(EntityFilter $entity, $method, $data = [], $params = [])
+    public function sendRequest(EntityQuery $entity, $method, $data = [], $params = [])
     {
         $url = $this->buildApiUrl($entity, $params, $method);
 
@@ -63,7 +69,7 @@ class Pipedrive
         }
     }
 
-    public function walkAll(EntityFilter $entity, $callback)
+    public function walkAll(EntityQuery $entity, $callback)
     {
         $start = 0;
         do {
@@ -96,7 +102,7 @@ class Pipedrive
     // TODO excetpion
     public function __get($entityType)
     {
-        return new EntityFilter($this, $entityType);
+        return new EntityQuery($this, $entityType);
     }
 
     public function getApiToken()
@@ -158,12 +164,12 @@ class Pipedrive
     }
 
     /**
-     * @param EntityFilter $entity
+     * @param EntityQuery $entity
      * @param array $params
      * @param null|string $method
      * @return string
      */
-    protected function buildApiUrl(EntityFilter $entityFilter, $params = [], $method = null)
+    public function buildApiUrl(EntityQuery $entityFilter, $params = [], $method = null)
     {
         $url = $this->getApiUrl();
 
@@ -197,5 +203,54 @@ class Pipedrive
         $url .= '?' . http_build_query($params);
 
         return $url;
+    }
+
+
+    /**
+     * @param string $entityQuery
+     * @param string $field
+     * @return null|string
+     */
+    public function getLongField($type, $field)
+    {
+        return isset($this->fields[$type][$field]) ? $this->fields[$type][$field] : $field;
+    }
+
+    public function getShortField($type, $field)
+    {
+        $fields = $this->getFields();
+        if (isset($fields[$type])) {
+            $key = array_search($field, $fields[$type]);
+            if ($key !== false) {
+                return $fields[$key];
+            }
+        }
+
+        return $field;
+    }
+
+    public function getIdField($type)
+    {
+        $idFields = $this->getIdFields();
+        if (isset($idFields[$type])) {
+            return $idFields[$type];
+        } else {
+            return $this->buildIdField($type);
+        }
+    }
+
+    protected function buildIdField($type)
+    {
+        return $this->getSingularType($type) . '_id';
+    }
+
+    protected function buildSearchField($type)
+    {
+        return $this->getSingularType($type) . 'Field';
+    }
+
+    protected function getSingularType($type)
+    {
+        return substr($type, 0, -1);
     }
 }
