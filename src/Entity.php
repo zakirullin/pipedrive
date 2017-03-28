@@ -227,7 +227,7 @@ class Entity
         $entities = [];
         $collect = function($entity) use (&$entities) {
             if ($entity) {
-                $entities[$entity->id] = $this->addShortFields($entity);
+                $entities[$entity->id] = (object)$this->addShortFields((array)$entity);
             }
         };
         $this->getPipedrive()->walkAll($root, $collect);
@@ -271,7 +271,8 @@ class Entity
     {
         foreach ($entity as $key => $value) {
             $field = $this->getPipedrive()->getShortField($this->getEntityQuery()->getType(), $key);
-            $entity->$field = $value;
+            unset($entity[$key]);
+            $entity[$field] = $value;
         }
 
         return $entity;
@@ -285,6 +286,7 @@ class Entity
     {
         foreach ($entity as $key => $value) {
             $field = $this->getPipedrive()->getLongField($this->getEntityQuery()->getType(), $key);
+            unset($entity[$key]);
             $entity[$field] = $value;
         }
 
