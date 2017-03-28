@@ -106,13 +106,10 @@ class Entity
             }
         }
 
-        // TODO
         if ($id = $this->getEntityQuery()->getId()) {
             $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity)->id;
         } else if ($condition = $this->getEntityQuery()->getCondition() || $this->getEntityQuery()->getPrev()) {
             $entities = $this->all();
-//            array_shift($condition);
-//            $entities = $this->filter($entities, $condition);
             foreach ($entities as $id => $value) {
                 $type = $this->getEntityQuery()->getType();
                 $ids[] = current($this->getPipedrive()->$type->find($id)->update($entity));
@@ -158,9 +155,6 @@ class Entity
                         $entities = $this->filter($entities, $next->getCondition());
                     }
                 }
-//                } else {
-//                    throw new \Exception('Condition is not valid!');
-//                }
 
                 $root = $next;
                 $rootEntities = $entities;
@@ -222,6 +216,7 @@ class Entity
 
         $mustRetrieve = is_array($root->getCondition()) && !$root->getNext();
         if ($mustRetrieve) {
+            die('yes');
             foreach ($entities as $id => $entity) {
                 $pipedrive = $this->getPipedrive();
                 $type = $this->getEntityQuery()->getType();
@@ -247,9 +242,6 @@ class Entity
         foreach ($parentEntities as $parentEntity) {
             $pipedrive = $this->getPipedrive();
             $newEntities = $pipedrive->$parentType->find($parentEntity->id)->$childType->all();
-
-//            $parent = (new static($this->getEntityQuery(), $parentType))->find($parentEntity->id);
-//            $newEntities = (new static($this->getEntityQuery(), $childType, $parent))->all();
             foreach ($newEntities as $entity) {
                 $entities[$entity->id] = $entity;
             }
