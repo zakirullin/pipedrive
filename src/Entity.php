@@ -137,6 +137,11 @@ class Entity
         return $this->all();
     }
 
+    public function walkAll($callback)
+    {
+        $this->getPipedrive()->walkAll($this->getEntityQuery(), $callback);
+    }
+
     /**
      * @param EntityQuery $entityQuery
      * @return array|null
@@ -267,6 +272,10 @@ class Entity
         return $entities;
     }
 
+    /**
+     * @param array $entity
+     * @return mixed
+     */
     protected function addShortFields($entity)
     {
         foreach ($entity as $key => $value) {

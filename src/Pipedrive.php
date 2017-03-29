@@ -2,6 +2,9 @@
 
 namespace Zakirullin\Pipedrive;
 
+use Zakirullin\Pipedrive\Interfaces\HttpClient as HttpClientInterface;
+use Zakirullin\Pipedrive\Http\HttpClient;
+
 /**
  * @property EntityQuery organizations
  * @property EntityQuery activities
@@ -12,34 +15,55 @@ namespace Zakirullin\Pipedrive;
 class Pipedrive
 {
     /**
-     * @var string $apiToken
+     * @var string
      */
     protected $apiToken;
 
     /**
-     * @var string $apiUrl
+     * @var string
      */
     protected $apiUrl;
 
     /**
-     * @var array $fields
+     * @var array
      */
     protected $fields;
 
     /**
+     * @var HttpClientInterface
+     */
+    protected $httpClient;
+
+    /**
+     * All other id fields can be builded using {getSingularType()}_id
+     *
      * @var array $ids
      */
     protected $idFields = [
         'organizations' => 'org_id',
+        'activities' => 'activity_id',
     ];
 
     const WALK_STEP = 500;
 
     // TODO add version and scheme
-    public function __construct($apiToken, $fields = [], $apiUrl = 'https://api.pipedrive.com/v1')
+    /**
+     * Pipedrive constructor.
+     * @param string $apiToken
+     * @param array $fields
+     * @param HttpClientInterface $httpClient
+     * @param string $apiUrl
+     */
+    public function __construct($apiToken, $fields = [], $httpClient = null, $apiUrl = 'https://api.pipedrive.com/v1')
     {
         $this->apiToken = $apiToken;
-        $this->shortFields = $fields;
+        $this->fields = $fields;
+
+        if (!$httpClient) {
+            $httpClient = new HttpClient();
+        }
+        $this->httpClient = $httpClient;
+
         $this->apiUrl = $apiUrl;
 
         return $this;
@@ -56,7 +80,7 @@ class Pipedrive
     {
         $url = $this->buildApiUrl($entity, $params, $method);
 
-        return HHttp::doJson($method, $url, $data);
+        return $this->httpClient->json($url, $method, $data);
     }
 
     // TODO add exception
@@ -177,8 +201,8 @@ class Pipedrive
         if (is_array($condition)) {
             if ($condition) {
                 $url .= "/searchResults/field";
-                $params['term'] = array_values($condition)[0];
-                $params['field_type'] = mb_strtolower(trim($this->buildSearchField($entityQuery->getType())));
+                $params['term'] = trim(mb_strtolower(current(array_values($condition))));
+                $params['field_type'] = $this->buildSearchField($entityQuery->getType());
                 $params['field_key'] = $this->getLongField($entityQuery->getType(), array_keys($condition)[0]);
                 $params['return_item_ids'] = 1;
                 $params['exact_match'] = (int)$entityQuery->isExactMatch();
