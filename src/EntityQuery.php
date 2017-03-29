@@ -14,6 +14,7 @@ namespace Zakirullin\Pipedrive;
  * @method array findAll
  * @method Entity|null one
  * @method Entity|null findOne
+ * @method forEach
  */
 class EntityQuery
 {
