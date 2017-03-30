@@ -67,7 +67,7 @@ class Entity
 
     /**
      * @param EntityQuery $entity
-     * @return array
+     * @return array|integer
      */
     public function create($entity)
     {
@@ -84,7 +84,7 @@ class Entity
                 $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
             }
         } else {
-            $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
+            return $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
         }
 
         return $ids;
@@ -98,8 +98,6 @@ class Entity
      */
     public function update($entity)
     {
-        $ids = [];
-
         $entity = (array)$entity;
         $this->addLongFields($entity);
 
@@ -110,19 +108,20 @@ class Entity
         }
 
         if ($id = $this->getEntityQuery()->getId()) {
-            $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity)->id;
+            return $this->getPipedrive()->process($this->getEntityQuery(), 'put', $entity)->id;
         } else if ($condition = $this->getEntityQuery()->getCondition() || $this->getEntityQuery()->getPrev()) {
             // TODO if no condition
+            $ids = [];
             $entities = $this->all();
             foreach ($entities as $id => $value) {
                 $type = $this->getEntityQuery()->getType();
                 $ids[] = current($this->getPipedrive()->$type->find($id)->update($entity));
             }
+
+            return $ids;
         } else {
             throw new \Exception("Entity can't be update without id");
         }
-
-        return $ids;
     }
 
     public function delete()

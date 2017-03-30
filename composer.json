@@ -14,7 +14,7 @@
     "autoload": {
         "psr-4": {
             "Zakirullin\\Pipedrive\\": "src",
-            "Zakirullin\\Pipedrive\\Tests": "tests"
+            "Zakirullin\\Pipedrive\\Tests\\": "tests"
         }
     }
 }

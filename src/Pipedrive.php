@@ -46,7 +46,7 @@ class Pipedrive
 
     const WALK_STEP = 500;
 
-    // TODO add version and scheme
+    // TODO add companyname version and scheme
     /**
      * Pipedrive constructor.
      * @param string $apiToken
@@ -68,7 +68,6 @@ class Pipedrive
 
         return $this;
     }
-
 
     public function process($entityQuery, $method, $data = [])
     {
@@ -242,7 +241,7 @@ class Pipedrive
         if (isset($fields[$type])) {
             $key = array_search($field, $fields[$type]);
             if ($key !== false) {
-                return $fields[$key];
+                return $key;
             }
         }
 
