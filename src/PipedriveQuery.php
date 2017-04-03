@@ -1,7 +1,9 @@
 <?php
 
 namespace Zakirullin\Pipedrive;
+
 use Zakirullin\Pipedrive\Exceptions\PipedriveException;
+use Zakirullin\Pipedrive\Executors\Executor;
 
 /**
  * @property PipedriveQuery organizations
@@ -53,13 +55,7 @@ class PipedriveQuery
      */
     protected $exactMatch;
 
-    // TODO replace with polymorph
-    const QUERY_TYPE_GET = 'get';
-    const QUERY_TYPE_GET_CHILDS = 'get-childs';
-    const QUERY_TYPE_FIND = 'find';
-    const QUERY_TYPE_CHAIN = 'chain';
-
-    /**
+   /**
      * @param Pipedrive $pipedrive
      * @param string $entityType
      * @param PipedriveQuery|null $prev
@@ -121,95 +117,14 @@ class PipedriveQuery
 
     public function all()
     {
-        return $this->getRoot()->execute();
+        return Executor::factory($this->getRoot())->execute();
     }
 
     public function one()
     {
-        $entities = $this->getRoot()->execute();
+        $entities = $this->all();
 
         return array_shift($entities);
-    }
-
-    public function execute()
-    {
-        if ($this->getType() == static::QUERY_TYPE_CHAIN) {
-            return $this->executeChain();
-        } else {
-            return $this->executeRoot();
-        }
-    }
-
-    /**
-     * @return $this
-     */
-    protected function executeChain()
-    {
-        $pipedrive = $this->getPipedrive();
-        $parentType = $this->getPrev()->getEntityType();
-        $childType = $this->getEntityType();
-        foreach ($this->prev()->getEntities() as $parentEntity) {
-            $entities = &$this->entities;
-            $pipedrive->$parentType->find($parentEntity->id)->$childType->walkAll(function($entity) use (&$entities) {
-                $entities[$entity->id] = $entity;
-            });
-        }
-
-        $this->filter();
-
-        if ($next = $this->getNext()) {
-            return $next->execute();
-        } else {
-            return $this->getEntities();
-        }
-    }
-
-    // TODO replace with ploymorph (?)
-    /**
-     * @return $this
-     * @throws PipedriveException
-     */
-    protected function executeRoot()
-    {
-        switch ($this->getType()) {
-            case static::QUERY_TYPE_GET: {
-                $entityType = $this->getEntityType();
-                $id = isset($this->condition['id']) ? $this->condition['id'] : null;
-                $entities = $this->getPipedrive()->get($entityType, $id)->getEntities();
-                $this->setEntities($entities);
-                $next = $this->getNext();
-                break;
-            }
-            case static::QUERY_TYPE_GET_CHILDS: {
-                $entityType = $this->getEntityType();
-                $id = $this->getCondition()['id'];
-                $childEntityType = $this->getNext()->getEntityType();
-                $entities = $this->getPipedrive()->getChilds($entityType, $id, $childEntityType)->getEntities();
-                $this->getNext()->setEntities($entities);
-                $this->getNext()->filter();
-                $next = $this->getNext()->getNext();
-                break;
-            }
-            case static::QUERY_TYPE_FIND: {
-                $field = array_keys($this->condition)[0];
-                $term = array_shift($this->condition);
-                $entities = $this->getPipedrive()->find($this->getEntityType(), $field, $term)->getEntities();
-                $this->setEntities($entities);
-                $this->filter();
-                $next = $this->getNext();
-                break;
-            }
-            default: {
-                throw new PipedriveException('Invalid query');
-            }
-        }
-
-
-        if ($next) {
-            return $next->execute();
-        } else {
-            return $entities;
-        }
     }
 
     /**
@@ -345,15 +260,6 @@ class PipedriveQuery
         return new static($this->getPipedrive(), $entityType, $this, $root);
     }
 
-    public function __call($method, $params)
-    {
-        if (isset($params[0])) {
-            return (new Entity($this))->$method($params[0]);
-        } else {
-            return (new Entity($this))->$method();
-        }
-    }
-
     /**
      * @return PipedriveQuery
      */
@@ -414,27 +320,5 @@ class PipedriveQuery
         }
 
         $this->setEntities($filteredEntities);
-    }
-
-    // TODO exception if null
-    /**
-     * @param PipedriveQuery $entityQuery
-     * @return bool
-     */
-    protected function getType()
-    {
-        if (!$this->getPrev()) {
-            if (isset($this->condition['id'])) {
-                if (($next = $this->getNext())) {
-                    return static::QUERY_TYPE_GET_CHILDS;
-                } else {
-                    return static::QUERY_TYPE_GET;
-                }
-            }
-
-            return static::QUERY_TYPE_FIND;
-        }
-
-        return static::QUERY_TYPE_CHAIN;
     }
 }
