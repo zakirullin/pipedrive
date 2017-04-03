@@ -39,7 +39,7 @@ class PipedriveResponse
     {
         $this->pipedrive = $pipedrive;
         $this->entityType = $entityType;
-        $this->response = json_decode($response);
+        $this->response = $response;
 
         if ($this->response->success == 'true') {
             $this->data = $response->data;
@@ -98,21 +98,34 @@ class PipedriveResponse
      */
     public function getEntities()
     {
+        $entities = [];
         if ($this->isComplete($this->response)) {
-            $entity =  $this->addShortFields($this->data);
-
-            return [$entity->id => $entity];
+            $entities = $this->data;
+            if (!is_array($entities)) {
+                $entities = [$entities->id => $entities];
+            }
         } else {
-            $entities = [];
             $collect = function ($entity) use (&$entities) {
                 if ($entity) {
-                    $entities[$entity->id] = $this->addShortFields($entity);
+                    $entities[$entity->id] = $entity;
                 }
             };
             $this->walkAll($collect);
-
-            return $entities;
         }
+
+        foreach ($entities as &$entity) {
+            $entity = $this->addShortFields($entity);
+        }
+
+        return $entities;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getData()
+    {
+        return $this->data;
     }
 
     /**
@@ -174,10 +187,10 @@ class PipedriveResponse
      * @param object $response
      * @return bool
      */
-    public function isComplete($response)
+    public function isComplete()
     {
-        $isPaginationExists = isset($response->additional_data->pagination);
-        $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
+        $isPaginationExists = isset($this->getAdditionalData()->pagination);
+        $isMoreItems = $isPaginationExists && $this->getAdditionalData()->pagination->more_items_in_collection;
 
         return !$isMoreItems;
     }
