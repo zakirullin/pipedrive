@@ -8,6 +8,14 @@ use Zakirullin\Pipedrive\Exceptions\PipedriveException;
 class HttpClient implements HttpClientInterface
 {
     /**
+     * @return $this
+     */
+    public function __construct()
+    {
+        return $this;
+    }
+
+    /**
      * @param string $method
      * @param string $url
      * @param array $data
