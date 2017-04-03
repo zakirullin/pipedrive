@@ -3,6 +3,7 @@
 namespace Zakirullin\Pipedrive\Http;
 
 use Zakirullin\Pipedrive\Interfaces\HttpClient as HttpClientInterface;
+use Zakirullin\Pipedrive\Exceptions\PipedriveException;
 
 class HttpClient implements HttpClientInterface
 {
@@ -32,7 +33,7 @@ class HttpClient implements HttpClientInterface
             $error = curl_error($ch);
             $body = json_encode($body);
 
-            throw new \Exception("HTTP $method to $url failed with: HTTP $code $error, body: $body, response: $response");
+            throw new PipedriveException("HTTP $method to $url failed with: HTTP $code $error, body: $body, response: $response");
         }
 
         return json_decode($response);

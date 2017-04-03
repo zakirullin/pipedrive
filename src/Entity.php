@@ -267,7 +267,7 @@ class Entity
     protected function addShortFields($entity)
     {
         foreach ($entity as $key => $value) {
-            $field = $this->getPipedrive()->getShortField($this->getEntityQuery()->getType(), $key);
+            $field = $this->getPipedrive()->getFieldByHash($this->getEntityQuery()->getType(), $key);
             unset($entity[$key]);
             $entity[$field] = $value;
         }
@@ -282,7 +282,7 @@ class Entity
     protected function addLongFields($entity)
     {
         foreach ($entity as $key => $value) {
-            $field = $this->getPipedrive()->getLongField($this->getEntityQuery()->getType(), $key);
+            $field = $this->getPipedrive()->getFieldHash($this->getEntityQuery()->getType(), $key);
             unset($entity[$key]);
             $entity[$field] = $value;
         }
