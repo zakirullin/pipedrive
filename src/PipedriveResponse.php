@@ -12,10 +12,15 @@ class PipedriveResponse
     /**
      * @var string
      */
+    protected $entityType;
+
+    /**
+     * @var string
+     */
     protected $response;
 
     /**
-     * @var array
+     * @var mixed
      */
     protected $data;
 
@@ -27,11 +32,57 @@ class PipedriveResponse
     const PAGINATE_STEP = 500;
 
     /**
+     * @param Pipedrive $pipedrive
      * @param string $response
      */
-    public function __construct($response)
+    public function __construct($pipedrive, $entityType, $response)
     {
-        $this->response = $response;
+        $this->pipedrive = $pipedrive;
+        $this->entityType = $entityType;
+        $this->response = json_decode($response);
+
+        if ($this->response->success == 'true') {
+            $this->data = $response->data;
+            $this->isSuccess = true;
+        }
+    }
+
+    /**
+     * @return Pipedrive
+     */
+    public function getPipedrive()
+    {
+        return $this->pipedrive;
+    }
+
+    /**
+     * @param Pipedrive $pipedrive
+     * @return $this
+     */
+    public function setPipedrive($pipedrive)
+    {
+        $this->pipedrive = $pipedrive;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEntityType()
+    {
+        return $this->entityType;
+    }
+
+    /**
+     * @param string $entityType
+     * @return $this
+     */
+    public function setEntityType($entityType)
+    {
+        $this->entityType = $entityType;
+
+        return $this;
     }
 
     /**
@@ -47,7 +98,16 @@ class PipedriveResponse
      */
     public function getData()
     {
-        return $this->data;
+        if ($this->isComplete($this->response)) {
+            return $this->data;
+        } else {
+            $entities = [];
+            $collect = function ($entity) use (&$entities) {
+                if ($entity) {
+                    $entities[$entity->id] = (object)$this->addShortFields((array)$entity);
+                }
+            };
+        }
     }
 
     /**
@@ -58,16 +118,18 @@ class PipedriveResponse
         return $this->isSuccess;
     }
 
-    public function paginate(EntityQuery $entity, $callback)
+    /**
+     * @param callable $callback
+     */
+    public function paginate($callback)
     {
         $start = 0;
         do {
             $terminate = true;
 
-            $params = ['limit' => static::WALK_STEP, 'start' => $start];
-            $response = $this->sendRequest($entity, 'get', [], $params);
-            $isPaginationExists = isset($response->additional_data->pagination);
-            $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
+            $params = ['limit' => static::PAGINATE_STEP, 'start' => $start];
+            $response = $this->pipedrive->get($entity, 'get', [], $params);
+
             if ($response->success == 'true') {
                 if ($isMoreItems) {
                     $start = $response->additional_data->pagination->next_start;
@@ -86,5 +148,28 @@ class PipedriveResponse
             }
 
         } while (!$terminate && $isMoreItems);
+    }
+
+    protected function isComplete($response)
+    {
+        $isPaginationExists = isset($response->additional_data->pagination);
+        $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
+
+        return !$isMoreItems;
+    }
+
+    /**
+     * @param array $entity
+     * @return mixed
+     */
+    protected function addShortFields($entity)
+    {
+        foreach ($entity as $key => $value) {
+            $field = $this->pipedrive->getShortField($this->getEntityQuery()->getType(), $key);
+            unset($entity[$key]);
+            $entity[$field] = $value;
+        }
+
+        return $entity;
     }
 }
