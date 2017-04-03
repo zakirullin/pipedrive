@@ -250,7 +250,7 @@ class PipedriveQuery
     }
 
     /**
-     * @param $entityType string
+     * @param string $entityType
      * @return static
      */
     public function __get($entityType)
