@@ -6,12 +6,12 @@ use Zakirullin\Pipedrive\Interfaces\HttpClient as HttpClientInterface;
 use Zakirullin\Pipedrive\Http\HttpClient;
 
 /**
- * @property PipedriveQuery organizations
- * @property PipedriveQuery activities
- * @property PipedriveQuery deals
- * @property PipedriveQuery persons
- * @property PipedriveQuery notes
- * @property PipedriveQuery products
+ * @property PipedriveQuery $organizations
+ * @property PipedriveQuery $activities
+ * @property PipedriveQuery $deals
+ * @property PipedriveQuery $persons
+ * @property PipedriveQuery $notes
+ * @property PipedriveQuery $products
  */
 class Pipedrive
 {
