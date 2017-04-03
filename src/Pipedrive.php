@@ -11,6 +11,7 @@ use Zakirullin\Pipedrive\Http\HttpClient;
  * @property EntityQuery deals
  * @property EntityQuery persons
  * @property EntityQuery notes
+ * @property EntityQuery products
  */
 class Pipedrive
 {
@@ -40,7 +41,7 @@ class Pipedrive
     protected $httpClient;
 
     /**
-     * All other id fields can be geted using {getSingularType()}_id
+     * All other id fields can be builded using {getSingularType()}_id
      *
      * @var array
      */
@@ -50,8 +51,7 @@ class Pipedrive
     ];
 
     /**
-     * Pipedrive constructor.
-     * @param string $apiToken
+     * @param string $token
      * @param array $fields
      * @param HttpClientInterface $httpClient
      * @param string $host
@@ -61,19 +61,20 @@ class Pipedrive
     {
         $this->token = $token;
         $this->fields = $fields;
+        $this->host = $host;
+        $this->version = $version;
 
         if (!$httpClient) {
             $httpClient = new HttpClient();
         }
         $this->httpClient = $httpClient;
 
-        $this->host = $host;
-        $this->version = $version;
-
         return $this;
     }
 
-
+    /**
+     * @return string
+     */
     public function getApiToken()
     {
         return $this->apiToken;
@@ -89,7 +90,6 @@ class Pipedrive
 
         return $this;
     }
-
 
     /**
      * @return string
@@ -161,66 +161,73 @@ class Pipedrive
     }
 
     /**
-     * @param string $type
+     * @param string $entityType
      * @param int|null $id
      * @return PipedriveResponse
      */
-    public function get($type, $id = null)
+    public function get($entityType, $id = null, $params = [])
     {
-        $url .= "/{$entityQuery->getType()}";
-        if ($entityQuery->getId() !== null) {
-            $url .= "/{$entityQuery->getId()}";
+        $action = $entityType;
+        if ($id !== null) {
+            $action .= "/$id";
         }
+        $url = $this->getApiUrl($action, $params);
+
+        $response = $this->httpClient->json($url);
+
+        return new PipedriveResponse($this, $entityType, $response);
     }
 
     /**
-     * @param string $type
+     * @param string $entityType
      * @param int $id
      * @param string $childType
      * @return PipedriveResponse
      */
-    public function getChilds($type, $id, $childType)
+    public function getChilds($entityType, $id, $childType)
     {
-        $url .= "/{$prev->getType()}/{$prev->getId()}/{$entityQuery->getType()}";
+        $action = "$entityType/$id/$childType";
+        $url = $this->getApiUrl($action);
     }
 
     /**
-     * @param string $type
+     * @param string $entityType
      * @param string $field
      * @param string $needle
      * @param bool $isExact
      * @return PipedriveResponse
      */
-    public function search($type, $field, $needle, $isExact = true)
+    public function search($entityType, $field, $term, $isExact = true)
     {
-        $url .= "/searchResults/field";
-        $params['term'] = trim(mb_strtolower(current(array_values($condition))));
-        $params['field_type'] = $this->getSearchField($entityQuery->getType());
-        $params['field_key'] = $this->getLongField($entityQuery->getType(), array_keys($condition)[0]);
+        $action = "/searchResults/field";
+        $params['term'] = trim(mb_strtolower($term));
+        $params['field_type'] = $this->getSearchField($entityType);
+        $params['field_key'] = $this->getLongField($entityType, $field);
         $params['return_item_ids'] = 1;
-        $params['exact_match'] = (int)$entityQuery->isExactMatch();
+        $params['exact_match'] = $isExact;
+        $url = $this->getApiUrl($action, $params);
     }
 
     /**
-     * @param string $type
+     * @param string $entityType
      * @param array $data
      */
-    public function create($type, $data)
+    public function create($entityType, $data)
     {
-
+        $url = $this->getApiUrl($entityType);
     }
 
     /**
-     * @param string $type
+     * @param string $entityType
      * @param string $data
      */
-    public function update($type, $data)
+    public function update($entityType, $data)
     {
-
+        $url = $this->getApiUrl($entityType);
     }
 
     /**
-     * @param string action
+     * @param string $action
      * @param array $params
      * @return string
      */
@@ -245,16 +252,21 @@ class Pipedrive
      * @param string $field
      * @return null|string
      */
-    public function getLongField($type, $field)
+    public function getLongField($entityType, $field)
     {
-        return isset($this->fields[$type][$field]) ? $this->fields[$type][$field] : $field;
+        return isset($this->fields[$entityType][$field]) ? $this->fields[$entityType][$field] : $field;
     }
 
-    public function getShortField($type, $field)
+    /**
+     * @param string $entityType
+     * @param string $field
+     * @return string
+     */
+    public function getShortField($entityType, $field)
     {
         $fields = $this->getFields();
-        if (isset($fields[$type])) {
-            $key = array_search($field, $fields[$type]);
+        if (isset($fields[$entityType])) {
+            $key = array_search($field, $fields[$entityType]);
             if ($key !== false) {
                 return $key;
             }
@@ -263,28 +275,35 @@ class Pipedrive
         return $field;
     }
 
-    public function getIdField($type)
+    /**
+     * @param string $entityType
+     * @return string
+     */
+    public function getIdField($entityType)
     {
         $idFields = $this->getIdFields();
-        if (isset($idFields[$type])) {
-            return $idFields[$type];
+        if (isset($idFields[$entityType])) {
+            return $idFields[$entityType];
         } else {
-            return $this->getIdField($type);
+            return $this->getSingularType($entityType) . '_id';
         }
     }
 
-    protected function getIdField($type)
+    /**
+     * @param string $entityType
+     * @return string
+     */
+    public function getSearchField($entityType)
     {
-        return $this->getSingularType($type) . '_id';
+        return $this->getSingularType($entityType) . 'Field';
     }
 
-    protected function getSearchField($type)
+    /**
+     * @param string $entityType
+     * @return string
+     */
+    protected function getSingularType($entityType)
     {
-        return $this->getSingularType($type) . 'Field';
-    }
-
-    protected function getSingularType($type)
-    {
-        return substr($type, 0, -1);
+        return substr($entityType, 0, -1);
     }
 }
