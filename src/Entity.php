@@ -5,7 +5,7 @@ namespace Zakirullin\Pipedrive;
 class Entity
 {
     /**
-     * @var EntityQuery
+     * @var PipedriveQuery
      */
     protected $entityQuery;
 
@@ -17,7 +17,7 @@ class Entity
     /**
      * Entity constructor.
      * @param Pipedrive $pipedrive
-     * @param EntityQuery $entityFilter
+     * @param PipedriveQuery $entityFilter
      */
     public function __construct($entityQuery)
     {
@@ -28,7 +28,7 @@ class Entity
     }
     
     /**
-     * @return EntityQuery
+     * @return PipedriveQuery
      */
     public function getEntityQuery()
     {
@@ -36,7 +36,7 @@ class Entity
     }
 
     /**
-     * @param EntityQuery $entityQuery
+     * @param PipedriveQuery $entityQuery
      * @return $this
      */
     public function setEntityQuery($entityQuery)
@@ -66,7 +66,7 @@ class Entity
     }
 
     /**
-     * @param EntityQuery $entity
+     * @param PipedriveQuery $entity
      * @return integer
      */
     public function create($entity)
@@ -81,7 +81,7 @@ class Entity
 
     // TODO exceptions
     /**
-     * @param EntityQuery $entity
+     * @param PipedriveQuery $entity
      * @return mixed
      * @throws \Exception
      */
@@ -131,7 +131,7 @@ class Entity
     }
 
     /**
-     * @param EntityQuery $entityQuery
+     * @param PipedriveQuery $entityQuery
      * @return array|null
      */
     public function all()
@@ -215,7 +215,7 @@ class Entity
         return $filteredEntities;
     }
 
-    protected function getRootEntities(EntityQuery $root)
+    protected function getRootEntities(PipedriveQuery $root)
     {
         $entities = [];
         $collect = function($entity) use (&$entities) {

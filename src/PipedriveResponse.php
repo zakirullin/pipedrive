@@ -96,7 +96,7 @@ class PipedriveResponse
     /**
      * @return array
      */
-    public function getData()
+    public function getEntities()
     {
         if ($this->isComplete($this->response)) {
             $entity =  $this->addShortFields($this->data);
