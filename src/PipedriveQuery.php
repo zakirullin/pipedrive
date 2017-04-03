@@ -4,20 +4,14 @@ namespace Zakirullin\Pipedrive;
 use Zakirullin\Pipedrive\Exceptions\PipedriveException;
 
 /**
- * @property EntityQuery organizations
- * @property EntityQuery activities
- * @property EntityQuery deals
- * @property EntityQuery persons
- * @property EntityQuery notes
- * @method array create
- * @method array update
- * @method array all
- * @method array findAll
- * @method Entity|null one
- * @method Entity|null findOne
- * @method forEach
+ * @property PipedriveQuery organizations
+ * @property PipedriveQuery activities
+ * @property PipedriveQuery deals
+ * @property PipedriveQuery persons
+ * @property PipedriveQuery notes
+ * @property PipedriveQuery products
  */
-class EntityQuery
+class PipedriveQuery
 {
     /**
      * @var Pipedrive
@@ -59,6 +53,7 @@ class EntityQuery
      */
     protected $exactMatch;
 
+    // TODO replace with polymorph
     const QUERY_TYPE_GET = 'get';
     const QUERY_TYPE_GET_CHILDS = 'get-childs';
     const QUERY_TYPE_FIND = 'find';
@@ -67,7 +62,7 @@ class EntityQuery
     /**
      * @param Pipedrive $pipedrive
      * @param string $entityType
-     * @param EntityQuery|null $prev
+     * @param PipedriveQuery|null $prev
      */
     public function __construct($pipedrive, $entityType, $prev = null, $root = null)
     {
@@ -90,6 +85,16 @@ class EntityQuery
         return $this;
     }
 
+    public function all()
+    {
+        return $this->getRoot()->execute();
+    }
+
+    public function one()
+    {
+
+    }
+
     public function execute()
     {
         if ($this->getType() == static::QUERY_TYPE_CHAIN) {
@@ -104,9 +109,25 @@ class EntityQuery
      */
     protected function executeChain()
     {
+        $pipedrive = $this->getPipedrive();
+        $parentType = $this->getPrev()->getEntityType();
+        $childType = $this->getEntityType();
+        foreach ($this->prev()->getEntities() as $parentEntity) {
+            $pipedrive->$parentType->find($parentEntity->id)->$childType->walkAll(function($entity) use ($this) {
+                $this->entities[$entity->id] = $entity;
+            });
+        }
 
+        $this->filter();
+
+        if ($next = $this->getNext()) {
+            return $next->execute();
+        } else {
+            return $this->getEntities();
+        }
     }
 
+    // TODO replace with ploymorph (?)
     /**
      * @return $this
      * @throws PipedriveException
@@ -117,14 +138,14 @@ class EntityQuery
             case static::QUERY_TYPE_GET: {
                 $entityType = $this->getEntityType();
                 $id = isset($this->condition['id']) ? $this->condition['id'] : null;
-                $this->setEntities($this->getPipedrive()->get($entityType, $id)->getData());
+                $this->setEntities($this->getPipedrive()->get($entityType, $id)->getEntities());
                 $next = $this->getNext();
             }
             case static::QUERY_TYPE_GET_CHILDS: {
                 $entityType = $this->getEntityType();
                 $id = $this->getCondition()['id'];
                 $childEntityType = $this->getNext()->getEntityType();
-                $this->setEntities($this->getPipedrive()->get($entityType, $id, $childEntityType)->getData());
+                $this->setEntities($this->getPipedrive()->get($entityType, $id, $childEntityType)->getEntities());
                 $next = $this->getNext()->getNext();
             }
             case static::QUERY_TYPE_FIND: {
@@ -199,7 +220,7 @@ class EntityQuery
     }
 
     /**
-     * @return null|EntityQuery
+     * @return null|PipedriveQuery
      */
     public function getPrev()
     {
@@ -207,7 +228,7 @@ class EntityQuery
     }
 
     /**
-     * @param null|EntityQuery $parent
+     * @param null|PipedriveQuery $parent
      * @return $this
      */
     public function setPrev($prev)
@@ -218,7 +239,7 @@ class EntityQuery
     }
 
     /**
-     * @return EntityQuery
+     * @return PipedriveQuery
      */
     public function getNext()
     {
@@ -226,7 +247,7 @@ class EntityQuery
     }
 
     /**
-     * @param EntityQuery $next
+     * @param PipedriveQuery $next
      * @return $this
      */
     public function setNext($next)
@@ -291,7 +312,7 @@ class EntityQuery
     }
 
     /**
-     * @return EntityQuery
+     * @return PipedriveQuery
      */
     public function getRoot()
     {
@@ -305,7 +326,7 @@ class EntityQuery
 
     // TODO exception if null
     /**
-     * @param EntityQuery $entityQuery
+     * @param PipedriveQuery $entityQuery
      * @return bool
      */
     protected function getType()
