@@ -29,7 +29,7 @@ class PipedriveResponse
      */
     protected $isSuccess = false;
 
-    const PAGINATE_STEP = 500;
+    const ENTITIES_PER_PAGE = 500;
 
     /**
      * @param Pipedrive $pipedrive
@@ -94,19 +94,36 @@ class PipedriveResponse
     }
 
     /**
-     * @return string
+     * @return array
      */
     public function getData()
     {
         if ($this->isComplete($this->response)) {
-            return $this->data;
+            $entity =  $this->addShortFields($this->data);
+
+            return [$entity->id => $entity];
         } else {
             $entities = [];
             $collect = function ($entity) use (&$entities) {
                 if ($entity) {
-                    $entities[$entity->id] = (object)$this->addShortFields((array)$entity);
+                    $entities[$entity->id] = $this->addShortFields($entity);
                 }
             };
+            $this->walkAll($collect);
+
+            return $entities;
+        }
+    }
+
+    /**
+     * @return object|null
+     */
+    public function getAdditionalData()
+    {
+        if (isset($this->response->additional_data)) {
+            return $this->response->additional_data;
+        } else {
+            return null;
         }
     }
 
@@ -121,36 +138,43 @@ class PipedriveResponse
     /**
      * @param callable $callback
      */
-    public function paginate($callback)
+    public function walkAll($callback)
     {
-        $start = 0;
+        $response = $this;
         do {
-            $terminate = true;
-
-            $params = ['limit' => static::PAGINATE_STEP, 'start' => $start];
-            $response = $this->pipedrive->get($entity, 'get', [], $params);
-
-            if ($response->success == 'true') {
-                if ($isMoreItems) {
-                    $start = $response->additional_data->pagination->next_start;
-                }
-
-                if (is_array($response->data)) {
-                    foreach ($response->data as $data) {
-                        $terminate = $callback($data);
-                        if ($terminate) {
-                            break;
-                        }
-                    }
-                } else {
-                    $terminate = $callback($response->data);
-                }
+            $terminate = $response->walk($callback);
+            $isComplete = $response->isComplete();
+            if (!$isComplete) {
+                $response = $this->getPipedrive()->get($this->entityType, null, [
+                    'start' => $response->getAdditionalData()->pagination->next_start,
+                    'limit' => static::ENTITIES_PER_PAGE
+                ]);
             }
+        } while (!$terminate || !$isComplete);
 
-        } while (!$terminate && $isMoreItems);
+        return $terminate;
     }
 
-    protected function isComplete($response)
+    public function walk($callback)
+    {
+        $terminate = false;
+        if (is_array($this->data)) {
+            foreach ($this->data as $data) {
+                $terminate = $callback($data);
+                if ($terminate) {
+                    break;
+                }
+            }
+        }
+
+        return $terminate;
+    }
+
+    /**
+     * @param object $response
+     * @return bool
+     */
+    public function isComplete($response)
     {
         $isPaginationExists = isset($response->additional_data->pagination);
         $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
@@ -159,17 +183,29 @@ class PipedriveResponse
     }
 
     /**
-     * @param array $entity
+     * @return $this
+     */
+    protected function nextPage()
+    {
+        $start = $this->response->additional_data->pagination->next_start;
+        $params = ['limit' => static::PAGINATE_STEP, 'start' => $start];
+
+        return $this->getPipedrive()->get($this->getEntityType(), null, $params);
+    }
+
+    /**
+     * @param object $entity
      * @return mixed
      */
     protected function addShortFields($entity)
     {
+        $entity = (array)$entity;
         foreach ($entity as $key => $value) {
-            $field = $this->pipedrive->getShortField($this->getEntityQuery()->getType(), $key);
+            $field = $this->getPipedrive()->getFieldByHash($this->getEntityType(), $key);
             unset($entity[$key]);
             $entity[$field] = $value;
         }
 
-        return $entity;
+        return (object)$entity;
     }
 }
