@@ -61,13 +61,9 @@ class Pipedrive
     {
         $this->token = $token;
         $this->fields = $fields;
+        $this->httpClient = $httpClient ? $httpClient : new HttpClient();
         $this->host = $host;
         $this->version = $version;
-
-        if (!$httpClient) {
-            $httpClient = new HttpClient();
-        }
-        $this->httpClient = $httpClient;
 
         return $this;
     }
