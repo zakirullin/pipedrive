@@ -31,14 +31,15 @@ class FakeHttpClient implements HttpClient
 
     public function json($url, $method = 'GET', $body = '')
     {
+        $method = strtoupper($method);
         switch ($method) {
-            case 'get':
+            case 'GET':
                 $data = $this->processGet($url);
                 break;
-            case 'post':
+            case 'POST':
                 $data = $this->processPost($url, $body);
                 break;
-            case 'put':
+            case 'PUT':
                 $data = $this->processPut($url, $body);
                 break;
         }
