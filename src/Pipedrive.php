@@ -36,11 +36,6 @@ class Pipedrive
     protected $fields;
 
     /**
-     * @var HttpClientInterface
-     */
-    protected $httpClient;
-
-    /**
      * All other id fields can be builded using {getSingularType()}_id
      *
      * @var array
@@ -49,6 +44,11 @@ class Pipedrive
         'organizations' => 'org_id',
         'activities' => 'activity_id',
     ];
+
+    /**
+     * @var HttpClientInterface
+     */
+    protected $httpClient;
 
     /**
      * @param string $token
@@ -75,18 +75,18 @@ class Pipedrive
     /**
      * @return string
      */
-    public function getApiToken()
+    public function getToken()
     {
-        return $this->apiToken;
+        return $this->token;
     }
 
     /**
-     * @param string $apiToken
+     * @param string $token
      * @return $this
      */
-    public function setApiToken($apiToken)
+    public function setToken($token)
     {
-        $this->apiToken = $apiToken;
+        $this->token = $token;
 
         return $this;
     }
@@ -206,6 +206,25 @@ class Pipedrive
     }
 
     /**
+     * @return HttpClientInterface
+     */
+    public function getHttpClient()
+    {
+        return $this->httpClient;
+    }
+
+    /**
+     * @param HttpClientInterface $httpClient
+     * @return $this
+     */
+    public function setHttpClient($httpClient)
+    {
+        $this->httpClient = $httpClient;
+
+        return $this;
+    }
+
+    /**
      * @param string $entityType
      * @param int|null $id
      * @return PipedriveResponse
@@ -218,7 +237,7 @@ class Pipedrive
         }
         $url = $this->getApiUrl($action, $params);
 
-        $response = $this->httpClient->json($url);
+        $response = $this->getHttpClient()->json($url);
 
         return new PipedriveResponse($this, $entityType, $response);
     }
@@ -233,6 +252,10 @@ class Pipedrive
     {
         $action = "$entityType/$id/$childType";
         $url = $this->getApiUrl($action);
+
+        $response = $this->getHttpClient()->json($url);
+
+        return new PipedriveResponse($this, $childType, $response);
     }
 
     /**
@@ -244,31 +267,45 @@ class Pipedrive
      */
     public function find($entityType, $field, $term, $isExact = true)
     {
-        $action = "/searchResults/field";
+        $action = "searchResults/field";
         $params['term'] = trim(mb_strtolower($term));
         $params['field_type'] = $this->getSearchField($entityType);
         $params['field_key'] = $this->getFieldHash($entityType, $field);
         $params['return_item_ids'] = 1;
         $params['exact_match'] = $isExact;
         $url = $this->getApiUrl($action, $params);
+
+        $response = $this->getHttpClient()->json($url);
+
+        return new PipedriveResponse($this, $entityType, $response);
     }
 
     /**
      * @param string $entityType
      * @param array $data
      */
-    public function create($entityType, $data)
+    public function create($entityType, $entity)
     {
-        $url = $this->getApiUrl($entityType);
+        $action = "$entityType";
+        $url = $this->getApiUrl($action);
+
+        $response = $this->getHttpClient()->json($url, 'post', $this->addHashFields($entityType, $entity));
+
+        return new PipedriveResponse($this, $entityType, $response);
     }
 
     /**
      * @param string $entityType
      * @param string $data
      */
-    public function update($entityType, $data)
+    public function update($entityType, $entity)
     {
-        $url = $this->getApiUrl($entityType);
+        $action = "{$entityType}/{$entity['id']}";
+        $url = $this->getApiUrl($action);
+
+        $response = $this->getHttpClient()->json($url, 'put', $this->addHashFields($entityType, $entity));
+
+        return new PipedriveResponse($this, $entityType, $response);
     }
 
     /**
@@ -280,8 +317,8 @@ class Pipedrive
     {
         $url = "{$this->host}/{$this->version}/{$action}";
 
-        $params['api_token'] = $this->apiToken;
-        $url .= '?' . http_get_query($params);
+        $params['api_token'] = $this->getToken();
+        $url .= '?' . http_build_query($params);
 
         return $url;
     }
@@ -308,5 +345,16 @@ class Pipedrive
     protected function getSingularType($entityType)
     {
         return substr($entityType, 0, -1);
+    }
+
+    protected function addHashFields($entityType, $entity)
+    {
+        foreach ($entity as $key => $value) {
+            $field = $this->getFieldHash($entityType, $key);
+            unset($entity[$key]);
+            $entity[$field] = $value;
+        }
+
+        return $entity;
     }
 }
