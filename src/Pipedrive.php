@@ -138,6 +138,34 @@ class Pipedrive
     }
 
     /**
+     * @param string $entityQuery
+     * @param string $field
+     * @return null|string
+     */
+    public function getFieldHash($entityType, $field)
+    {
+        return isset($this->fields[$entityType][$field]) ? $this->fields[$entityType][$field] : $field;
+    }
+
+    /**
+     * @param string $entityType
+     * @param string $field
+     * @return string
+     */
+    public function getFieldByHash($entityType, $hash)
+    {
+        $fields = $this->getFields();
+        if (isset($fields[$entityType])) {
+            $key = array_search($hash, $fields[$entityType]);
+            if ($key !== false) {
+                return $key;
+            }
+        }
+
+        return $hash;
+    }
+
+    /**
      * @param array $fields
      * @return $this
      */
@@ -148,9 +176,26 @@ class Pipedrive
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getIdFields()
     {
         return $this->idFields;
+    }
+
+    /**
+     * @param string $entityType
+     * @return string
+     */
+    public function getIdField($entityType)
+    {
+        $idFields = $this->getIdFields();
+        if (isset($idFields[$entityType])) {
+            return $idFields[$entityType];
+        } else {
+            return $this->getSingularType($entityType) . '_id';
+        }
     }
 
     public function setIdFields($idFields)
@@ -197,12 +242,12 @@ class Pipedrive
      * @param bool $isExact
      * @return PipedriveResponse
      */
-    public function search($entityType, $field, $term, $isExact = true)
+    public function find($entityType, $field, $term, $isExact = true)
     {
         $action = "/searchResults/field";
         $params['term'] = trim(mb_strtolower($term));
         $params['field_type'] = $this->getSearchField($entityType);
-        $params['field_key'] = $this->getLongField($entityType, $field);
+        $params['field_key'] = $this->getFieldHash($entityType, $field);
         $params['return_item_ids'] = 1;
         $params['exact_match'] = $isExact;
         $url = $this->getApiUrl($action, $params);
@@ -245,48 +290,6 @@ class Pipedrive
     public function __get($entityType)
     {
         return new EntityQuery($this, $entityType);
-    }
-
-    /**
-     * @param string $entityQuery
-     * @param string $field
-     * @return null|string
-     */
-    public function getLongField($entityType, $field)
-    {
-        return isset($this->fields[$entityType][$field]) ? $this->fields[$entityType][$field] : $field;
-    }
-
-    /**
-     * @param string $entityType
-     * @param string $field
-     * @return string
-     */
-    public function getShortField($entityType, $field)
-    {
-        $fields = $this->getFields();
-        if (isset($fields[$entityType])) {
-            $key = array_search($field, $fields[$entityType]);
-            if ($key !== false) {
-                return $key;
-            }
-        }
-
-        return $field;
-    }
-
-    /**
-     * @param string $entityType
-     * @return string
-     */
-    public function getIdField($entityType)
-    {
-        $idFields = $this->getIdFields();
-        if (isset($idFields[$entityType])) {
-            return $idFields[$entityType];
-        } else {
-            return $this->getSingularType($entityType) . '_id';
-        }
     }
 
     /**
