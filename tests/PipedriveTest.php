@@ -55,6 +55,11 @@ class PipedriveTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('organization1', $organization->name);
     }
 
+    public function testChainedSearch()
+    {
+//        $notes = $this->pipedrive->organizations->
+    }
+
     public function testCreate()
     {
         $id = $this->pipedrive->organizations->create(['name' => 'new organization']);
