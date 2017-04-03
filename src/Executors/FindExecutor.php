@@ -12,7 +12,7 @@ class FindExecutor extends Executor
         $term = array_shift($condition);
         $pipedriveQuery->setCondition($condition);
 
-        $entities = $pipedriveQuery->getPipedrive()->find($this->getEntityType(), $field, $term)->getEntities();
+        $entities = $pipedriveQuery->getPipedrive()->find($pipedriveQuery->getEntityType(), $field, $term)->getEntities();
         $pipedriveQuery->setEntities($entities);
 
         $pipedriveQuery->filter();
