@@ -6,12 +6,12 @@ use Zakirullin\Pipedrive\Interfaces\HttpClient as HttpClientInterface;
 use Zakirullin\Pipedrive\Http\HttpClient;
 
 /**
- * @property EntityQuery organizations
- * @property EntityQuery activities
- * @property EntityQuery deals
- * @property EntityQuery persons
- * @property EntityQuery notes
- * @property EntityQuery products
+ * @property PipedriveQuery organizations
+ * @property PipedriveQuery activities
+ * @property PipedriveQuery deals
+ * @property PipedriveQuery persons
+ * @property PipedriveQuery notes
+ * @property PipedriveQuery products
  */
 class Pipedrive
 {
@@ -289,7 +289,7 @@ class Pipedrive
     // TODO excetpion
     public function __get($entityType)
     {
-        return new EntityQuery($this, $entityType);
+        return new PipedriveQuery($this, $entityType);
     }
 
     /**
