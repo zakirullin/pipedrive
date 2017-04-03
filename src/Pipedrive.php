@@ -17,12 +17,17 @@ class Pipedrive
     /**
      * @var string
      */
-    protected $apiToken;
+    protected $token;
 
     /**
      * @var string
      */
-    protected $apiUrl;
+    protected $host;
+
+    /**
+     * @var string
+     */
+    protected $version;
 
     /**
      * @var array
@@ -35,28 +40,26 @@ class Pipedrive
     protected $httpClient;
 
     /**
-     * All other id fields can be builded using {getSingularType()}_id
+     * All other id fields can be geted using {getSingularType()}_id
      *
-     * @var array $ids
+     * @var array
      */
     protected $idFields = [
         'organizations' => 'org_id',
         'activities' => 'activity_id',
     ];
 
-    const WALK_STEP = 500;
-
-    // TODO add companyname version and scheme
     /**
      * Pipedrive constructor.
      * @param string $apiToken
      * @param array $fields
      * @param HttpClientInterface $httpClient
-     * @param string $apiUrl
+     * @param string $host
+     * @param string $version
      */
-    public function __construct($apiToken, $fields = [], $httpClient = null, $apiUrl = 'https://api.pipedrive.com/v1')
+    public function __construct($token, $fields = [], $httpClient = null, $host = 'https://api.pipedrive.com', $version = 'v1')
     {
-        $this->apiToken = $apiToken;
+        $this->token = $token;
         $this->fields = $fields;
 
         if (!$httpClient) {
@@ -64,69 +67,12 @@ class Pipedrive
         }
         $this->httpClient = $httpClient;
 
-        $this->apiUrl = $apiUrl;
+        $this->host = $host;
+        $this->version = $version;
 
         return $this;
     }
 
-    public function process($entityQuery, $method, $data = [])
-    {
-        return $this->processResponse($this->sendRequest($entityQuery, $method, $data));
-    }
-
-    // TODO Checking for parents
-    public function sendRequest(EntityQuery $entity, $method, $data = [], $params = [])
-    {
-        $url = $this->buildApiUrl($entity, $params, $method);
-
-        return $this->httpClient->json($url, $method, $data);
-    }
-
-    // TODO add exception
-    public function processResponse($response)
-    {
-        if ($response->success == 'true') {
-            return $response->data;
-        } else {
-            return false;
-        }
-    }
-
-    public function walkAll(EntityQuery $entity, $callback)
-    {
-        $start = 0;
-        do {
-            $terminate = true;
-
-            $params = ['limit' => static::WALK_STEP, 'start' => $start];
-            $response = $this->sendRequest($entity, 'get', [], $params);
-            $isPaginationExists = isset($response->additional_data->pagination);
-            $isMoreItems = $isPaginationExists && $response->additional_data->pagination->more_items_in_collection;
-            if ($response->success == 'true') {
-                if ($isMoreItems) {
-                    $start = $response->additional_data->pagination->next_start;
-                }
-
-                if (is_array($response->data)) {
-                    foreach ($response->data as $data) {
-                        $terminate = $callback($data);
-                        if ($terminate) {
-                            break;
-                        }
-                    }
-                } else {
-                    $terminate = $callback($response->data);
-                }
-            }
-
-        } while (!$terminate && $isMoreItems);
-    }
-
-    // TODO excetpion
-    public function __get($entityType)
-    {
-        return new EntityQuery($this, $entityType);
-    }
 
     public function getApiToken()
     {
@@ -134,7 +80,7 @@ class Pipedrive
     }
 
     /**
-     * @param $apiToken
+     * @param string $apiToken
      * @return $this
      */
     public function setApiToken($apiToken)
@@ -144,22 +90,48 @@ class Pipedrive
         return $this;
     }
 
-    public function getApiUrl()
+
+    /**
+     * @return string
+     */
+    public function getHost()
     {
-        return $this->apiUrl;
+        return $this->host;
     }
 
     /**
-     * @param string $apiUrl
+     * @param string $host
      * @return $this
      */
-    public function setApiUrl($apiUrl)
+    public function setHost($host)
     {
-        $this->apiUrl = $apiUrl;
+        $this->host = $host;
 
         return $this;
     }
 
+    /**
+     * @return string
+     */
+    public function getVersion()
+    {
+        return $this->version;
+    }
+
+    /**
+     * @param string $version
+     * @return $this
+     */
+    public function setVersion($version)
+    {
+        $this->version = $version;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
     public function getFields()
     {
         return $this->fields;
@@ -172,6 +144,8 @@ class Pipedrive
     public function setFields($fields)
     {
         $this->setFields = $fields;
+
+        return $this;
     }
 
     public function getIdFields()
@@ -187,42 +161,83 @@ class Pipedrive
     }
 
     /**
-     * @param EntityQuery $entity
+     * @param string $type
+     * @param int|null $id
+     * @return PipedriveResponse
+     */
+    public function get($type, $id = null)
+    {
+        $url .= "/{$entityQuery->getType()}";
+        if ($entityQuery->getId() !== null) {
+            $url .= "/{$entityQuery->getId()}";
+        }
+    }
+
+    /**
+     * @param string $type
+     * @param int $id
+     * @param string $childType
+     * @return PipedriveResponse
+     */
+    public function getChilds($type, $id, $childType)
+    {
+        $url .= "/{$prev->getType()}/{$prev->getId()}/{$entityQuery->getType()}";
+    }
+
+    /**
+     * @param string $type
+     * @param string $field
+     * @param string $needle
+     * @param bool $isExact
+     * @return PipedriveResponse
+     */
+    public function search($type, $field, $needle, $isExact = true)
+    {
+        $url .= "/searchResults/field";
+        $params['term'] = trim(mb_strtolower(current(array_values($condition))));
+        $params['field_type'] = $this->getSearchField($entityQuery->getType());
+        $params['field_key'] = $this->getLongField($entityQuery->getType(), array_keys($condition)[0]);
+        $params['return_item_ids'] = 1;
+        $params['exact_match'] = (int)$entityQuery->isExactMatch();
+    }
+
+    /**
+     * @param string $type
+     * @param array $data
+     */
+    public function create($type, $data)
+    {
+
+    }
+
+    /**
+     * @param string $type
+     * @param string $data
+     */
+    public function update($type, $data)
+    {
+
+    }
+
+    /**
+     * @param string action
      * @param array $params
-     * @param null|string $method
      * @return string
      */
-    public function buildApiUrl(EntityQuery $entityQuery, $params = [], $method = null)
+    public function getApiUrl($action, $params = [])
     {
-        $url = $this->getApiUrl();
-
-        $condition = $entityQuery->getCondition();
-        if (is_array($condition)) {
-            if ($condition) {
-                $url .= "/searchResults/field";
-                $params['term'] = trim(mb_strtolower(current(array_values($condition))));
-                $params['field_type'] = $this->buildSearchField($entityQuery->getType());
-                $params['field_key'] = $this->getLongField($entityQuery->getType(), array_keys($condition)[0]);
-                $params['return_item_ids'] = 1;
-                $params['exact_match'] = (int)$entityQuery->isExactMatch();
-            } else {
-                throw new \Exception('Condition is empty!');
-            }
-        } else {
-            if (($prev = $entityQuery->getPrev()) && $prev->getId() && $method == 'get') {
-                $url .= "/{$prev->getType()}/{$prev->getId()}/{$entityQuery->getType()}";
-            } else {
-                $url .= "/{$entityQuery->getType()}";
-                if ($entityQuery->getId() !== null) {
-                    $url .= "/{$entityQuery->getId()}";
-                }
-            }
-        }
+        $url = "{$this->host}/{$this->version}/{$action}";
 
         $params['api_token'] = $this->apiToken;
-        $url .= '?' . http_build_query($params);
+        $url .= '?' . http_get_query($params);
 
         return $url;
+    }
+
+    // TODO excetpion
+    public function __get($entityType)
+    {
+        return new EntityQuery($this, $entityType);
     }
 
     /**
@@ -254,16 +269,16 @@ class Pipedrive
         if (isset($idFields[$type])) {
             return $idFields[$type];
         } else {
-            return $this->buildIdField($type);
+            return $this->getIdField($type);
         }
     }
 
-    protected function buildIdField($type)
+    protected function getIdField($type)
     {
         return $this->getSingularType($type) . '_id';
     }
 
-    protected function buildSearchField($type)
+    protected function getSearchField($type)
     {
         return $this->getSingularType($type) . 'Field';
     }

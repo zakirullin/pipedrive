@@ -67,27 +67,16 @@ class Entity
 
     /**
      * @param EntityQuery $entity
-     * @return array|integer
+     * @return integer
      */
     public function create($entity)
     {
         $entity = (array)$entity;
         $entity = $this->addLongFields($entity);
 
-        $ids = [];
-        $prev = $this->getEntityQuery()->getPrev();
-        if ($prev) {
-            $parents = $prev->all();
-            foreach ($parents as $parent) {
-                $newEntity = $entity;
-                $newEntity[$this->getPipedrive()->getIdField($prev->getType())] = $parent->id;
-                $ids[] = $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
-            }
-        } else {
-            return $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
-        }
+        return $this->getPipedrive()->process($this->getEntityQuery(), 'post', $entity)->id;
 
-        return $ids;
+        return $id;
     }
 
     // TODO exceptions
