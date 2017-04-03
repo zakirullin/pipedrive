@@ -12,8 +12,8 @@ class ChainExecutor extends Executor
 
         $entities = [];
         foreach ($pipedriveQuery->getPrev()->getEntities() as $parentEntity) {
-            $childEntities = $pipedriveQuery->getPipedrive()->$parentType->find($parentEntity->id)->$childType->all();
-            $entities = array_merge($entities, $childEntities);
+            $childEntities = $pipedriveQuery->getPipedrive()->getChilds($parentType, $parentEntity->id, $childType)->getEntities();
+            $entities += $childEntities;
         }
         $pipedriveQuery->setEntities($entities);
 

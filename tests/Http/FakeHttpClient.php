@@ -98,7 +98,6 @@ class FakeHttpClient implements HttpClient
 
     protected function getChilds($url)
     {
-        die('yes');
         $childType = $this->getChildType($url);
         return $this->db[$this->getAction($url)][$this->getId($url)]->$childType;
     }

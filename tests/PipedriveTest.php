@@ -37,27 +37,49 @@ class PipedriveTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('custom', $organization->custom);
     }
 
+    public function testGetChained()
+    {
+        $notes = $this->pipedrive->organizations->persons->notes->all();
+
+        for ($id = 1; $id < static::ENTITIES * static::CHILD_ENTITIES; $id++) {
+            $this->assertEquals($id, $notes[$id]->id);
+            $this->assertEquals("note$id", $notes[$id]->content);
+        }
+    }
+
     public function testGetChilds()
     {
         $notes = $this->pipedrive->organizations->find(1)->notes->all();
 
-        for ($i = 1; $i <= static::CHILD_ENTITIES; $i++) {
-            $this->assertEquals($i, $notes[$i]->id);
-            $this->assertEquals("note$i", $notes[$i]->content);
+        for ($id = 1; $id <= static::CHILD_ENTITIES; $id++) {
+            $this->assertEquals($id, $notes[$id]->id);
+            $this->assertEquals("note$id", $notes[$id]->content);
         }
     }
 
     public function testSearch()
     {
-        $organization = $this->pipedrive->organizations->find(['name' => 'organization1'])->one();
+        $organization = $this->pipedrive->organizations->find(['name' => 'organization1', 'emails' => 'email1@1.com'])->one();
 
         $this->assertEquals(1, $organization->id);
         $this->assertEquals('organization1', $organization->name);
     }
 
-    public function testChainedSearch()
+    public function testUnsuccessfullSearch()
     {
-//        $notes = $this->pipedrive->organizations->
+        $person = $this->pipedrive->persons->find(['name' => 'none'])->one();
+
+        $this->assertNull($person);
+    }
+
+    public function testSearchChained()
+    {
+        $notes = $this->pipedrive->organizations->find(['name' => 'organization1'])->persons->notes->all();
+
+        for ($id = 1; $id <= static::CHILD_ENTITIES; $id++) {
+            $this->assertEquals($id, $notes[$id]->id);
+            $this->assertEquals("note$id", $notes[$id]->content);
+        }
     }
 
     public function testCreate()
@@ -108,8 +130,10 @@ class PipedriveTest extends \PHPUnit_Framework_TestCase
                 $note->id = (($id - 1) * static::CHILD_ENTITIES) + $i + 1;
                 $note->content = "note{$note->id}";
                 $note->org_id = $id;
+                $note->person_id = $id;
                 $db['notes'][$id] = $note;
                 $db['organizations'][$id]->notes[$note->id] = $note;
+                $db['persons'][$id]->notes[$note->id] = $note;
             }
         }
 
