@@ -30,7 +30,7 @@ class PipedriveTest extends \PHPUnit_Framework_TestCase
 
     public function testGet()
     {
-        $organization = $this->pipedrive->organizations->findOne(1);
+        $organization = $this->pipedrive->organizations->find(1)->one();
 
         $this->assertEquals(1, $organization->id);
         $this->assertEquals('organization1', $organization->name);
