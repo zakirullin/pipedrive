@@ -7,14 +7,7 @@ use Zakirullin\Pipedrive\Tests\Http\FakeHttpClient;
 
 class PipedriveTest extends \PHPUnit_Framework_TestCase
 {
-    /**
-     * @var Pipedrive
-     */
     protected $pipedrive;
-
-    /**
-     * @var array
-     */
     protected $db;
 
     const ENTITIES = 30;

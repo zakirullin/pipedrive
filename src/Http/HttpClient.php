@@ -8,21 +8,13 @@ use Zakirullin\Pipedrive\Exceptions\PipedriveException;
 class HttpClient implements HttpClientInterface
 {
     /**
-     * @return $this
-     */
-    public function __construct()
-    {
-        return $this;
-    }
-
-    /**
-     * @param string $method
      * @param string $url
-     * @param array $data
+     * @param string $method
+     * @param array $body
      * @return mixed
      * @throws \Exception
      */
-    public function json($url, $method = 'GET', $body = '')
+    public function json($url, $method = 'GET', $body = [])
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -45,5 +37,10 @@ class HttpClient implements HttpClientInterface
         }
 
         return json_decode($response);
+    }
+
+    public function __construct()
+    {
+        return $this;
     }
 }

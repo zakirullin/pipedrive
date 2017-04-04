@@ -4,19 +4,21 @@ namespace Zakirullin\Pipedrive\Executors;
 
 class GetChildsExecutor extends Executor
 {
-    public function execute()
+    protected function fetch()
     {
-        $pipedriveQuery = $this->getPipedriveQuery();
-        $entityType = $pipedriveQuery->getEntityType();
-        $condition = $pipedriveQuery->getCondition();
+        $query = $this->getQuery();
+        $entityType = $query->getEntityType();
+        $condition = $query->getCondition();
         $id = isset($condition['id']) ? $condition['id'] : null;
-        $childEntityType = $pipedriveQuery->getNext()->getEntityType();
+        $childEntityType = $query->getNext()->getEntityType();
 
-        $entities = $pipedriveQuery->getPipedrive()->getChilds($entityType, $id, $childEntityType)->getEntities();
-        $pipedriveQuery->getNext()->setEntities($entities);
+        $entities = $query->getPipedrive()->getChilds($entityType, $id, $childEntityType)->getEntities();
 
-        $pipedriveQuery->getNext()->filter();
+        return $entities;
+    }
 
-        return static::factory($pipedriveQuery->getNext())->next();
+    protected function getTargetQuery()
+    {
+        return $this->getQuery()->getNext();
     }
 }
