@@ -4,15 +4,13 @@ namespace Zakirullin\Pipedrive\Executors;
 
 class GetExecutor extends Executor
 {
-    public function execute()
+    protected function fetch()
     {
-        $pipedriveQuery = $this->getPipedriveQuery();
-        $entityType = $pipedriveQuery->getEntityType();
-        $condition = $pipedriveQuery->getCondition();
+        $query = $this->getQuery();
+        $entityType = $query->getEntityType();
+        $condition = $query->getCondition();
         $id = isset($condition['id']) ? $condition['id'] : null;
 
-        $pipedriveQuery->setEntities($pipedriveQuery->getPipedrive()->get($entityType, $id)->getEntities());
-
-        return $this->next();
+        return $query->getPipedrive()->get($entityType, $id)->getEntities();
     }
 }

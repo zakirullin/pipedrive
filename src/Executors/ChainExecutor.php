@@ -4,21 +4,18 @@ namespace Zakirullin\Pipedrive\Executors;
 
 class ChainExecutor extends Executor
 {
-    public function execute()
+    protected function fetch()
     {
-        $pipedriveQuery = $this->getPipedriveQuery();
-        $parentType = $pipedriveQuery->getPrev()->getEntityType();
-        $childType = $pipedriveQuery->getEntityType();
+        $query = $this->getQuery();
+        $parentType = $query->getPrev()->getEntityType();
+        $childType = $query->getEntityType();
 
         $entities = [];
-        foreach ($pipedriveQuery->getPrev()->getEntities() as $parentEntity) {
-            $childEntities = $pipedriveQuery->getPipedrive()->getChilds($parentType, $parentEntity->id, $childType)->getEntities();
+        foreach ($query->getPrev()->getEntities() as $parentEntity) {
+            $childEntities = $query->getPipedrive()->getChilds($parentType, $parentEntity->id, $childType)->getEntities();
             $entities += $childEntities;
         }
-        $pipedriveQuery->setEntities($entities);
 
-        $pipedriveQuery->filter();
-
-        return $this->next();
+        return $entities;
     }
 }

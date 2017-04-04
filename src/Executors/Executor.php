@@ -2,66 +2,99 @@
 
 namespace Zakirullin\Pipedrive\Executors;
 
-use Zakirullin\Pipedrive\PipedriveQuery;
+use Zakirullin\Pipedrive\Query;
+use Zakirullin\Pipedrive\Pipedrive;
 
 abstract class Executor
 {
     /**
-     * @var PipedriveQuery
+     * @var Query
      */
-    protected $pipedriveQuery;
+    protected $query;
 
     /**
-     * @return array
+     * @var Pipedrive
      */
-    public abstract function execute();
+    protected $pipedrive;
 
     /**
-     * @param PipedriveQuery $pipedriveQuery
+     * @param Query $query
      */
-    public function __construct($pipedriveQuery)
+    public function __construct($query)
     {
-        $this->pipedriveQuery = $pipedriveQuery;
+        $this->setQuery($query);
+        $this->setPipedrive($query->getPipedrive());
 
         return $this;
     }
 
     /**
-     * @param PipedriveQuery $pipedriveQuery
+     * @param Query $query
      * @return static
      */
-    public static function factory($pipedriveQuery)
+    public static function factory($query)
     {
-        $condition = $pipedriveQuery->getCondition();
-        if ($pipedriveQuery->getPrev()) {
-            return new ChainExecutor($pipedriveQuery);
+        $condition = $query->getCondition();
+        if ($query->getPrev()) {
+            return new ChainExecutor($query);
         } else if ($condition) {
             $hasId = is_numeric($condition) || isset($condition['id']);
-            if ($hasId && $pipedriveQuery->getNext()) {
-                return new GetChildsExecutor($pipedriveQuery);
+            if ($hasId && $query->getNext()) {
+                return new GetChildsExecutor($query);
             } else {
-                return new FindExecutor($pipedriveQuery);
+                return new FindExecutor($query);
             }
         }
 
-        return new GetExecutor($pipedriveQuery);
+        return new GetExecutor($query);
     }
 
     /**
-     * @return PipedriveQuery
+     * @return array
      */
-    public function getPipedriveQuery()
+    public function execute()
     {
-        return $this->pipedriveQuery;
+        $query = $this->getTargetQuery();
+        $query->setEntities($this->fetch());
+        $query->filter();
+
+        return $this->next($query);
     }
 
     /**
-     * @param PipedriveQuery $pipedriveQuery
+     * @return Query
+     */
+    public function getQuery()
+    {
+        return $this->query;
+    }
+
+    /**
+     * @param Query $query
      * @return $this
      */
-    public function setPipedriveQuery($pipedriveQuery)
+    public function setQuery($query)
     {
-        $this->pipedriveQuery = $pipedriveQuery;
+        $this->query = $query;
+
+        return $this;
+    }
+
+    /**
+     * @return Pipedrive
+     */
+    public function getPipedrive()
+    {
+        return $this->pipedrive;
+    }
+
+    /**
+     * @param Pipedrive $pipedrive
+     * @return $this
+     */
+    public function setPipedrive($pipedrive)
+    {
+        $this->pipedrive = $pipedrive;
 
         return $this;
     }
@@ -69,12 +102,26 @@ abstract class Executor
     /**
      * @return array
      */
-    public function next()
+    protected abstract function fetch();
+
+    /**
+     * @return Query|null
+     */
+    protected function getTargetQuery()
     {
-        if ($next = $this->getPipedriveQuery()->getNext()) {
+        return $this->getQuery();
+    }
+
+    /**
+     * @param Query $query
+     * @return array
+     */
+    protected function next($query)
+    {
+        if ($next = $query->getNext()) {
             return static::factory($next)->execute();
         } else {
-            return $this->getPipedriveQuery()->getEntities();
+            return $query->getEntities();
         }
     }
 }
