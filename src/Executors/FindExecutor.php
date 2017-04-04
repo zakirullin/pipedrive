@@ -6,14 +6,12 @@ class FindExecutor extends Executor
 {
     protected function fetch()
     {
-        $query = $this->getQuery();
-        $condition = $query->getCondition();
+        $condition = $this->getQuery()->getCondition();
         $field = array_keys($condition)[0];
         $term = array_shift($condition);
-        $query->setCondition($condition);
+        $this->getQuery()->setCondition($condition);
+        $type = $this->getQuery()->getType();
 
-        $entities = $query->getPipedrive()->find($query->getEntityType(), $field, $term)->getEntities();
-
-        return $entities;
+        return $this->getPipedrive()->find($type, $field, $term)->getEntities();
     }
 }

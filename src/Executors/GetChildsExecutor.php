@@ -6,15 +6,11 @@ class GetChildsExecutor extends Executor
 {
     protected function fetch()
     {
-        $query = $this->getQuery();
-        $entityType = $query->getEntityType();
-        $condition = $query->getCondition();
-        $id = isset($condition['id']) ? $condition['id'] : null;
-        $childEntityType = $query->getNext()->getEntityType();
+        $parentType = $this->getQuery()->getType();
+        $id = $this->getQuery()->getConditionId();
+        $childType = $this->getQuery()->getNext()->getType();
 
-        $entities = $query->getPipedrive()->getChilds($entityType, $id, $childEntityType)->getEntities();
-
-        return $entities;
+        return $this->getPipedrive()->getChilds($parentType, $id, $childType)->getEntities();
     }
 
     protected function getTargetQuery()

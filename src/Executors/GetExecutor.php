@@ -6,11 +6,9 @@ class GetExecutor extends Executor
 {
     protected function fetch()
     {
-        $query = $this->getQuery();
-        $entityType = $query->getEntityType();
-        $condition = $query->getCondition();
-        $id = isset($condition['id']) ? $condition['id'] : null;
+        $type = $this->getQuery()->getType();
+        $id = $this->getQuery()->getConditionId();
 
-        return $query->getPipedrive()->get($entityType, $id)->getEntities();
+        return $this->getPipedrive()->get($type, $id)->getEntities();
     }
 }
