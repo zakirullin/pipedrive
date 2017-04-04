@@ -124,9 +124,9 @@ class Response
     /**
      * @return mixed
      */
-    public function getData()
+    public function getEntity()
     {
-        return $this->data;
+        return is_array($this->data) ? $this->data[0] : $this->data;
     }
 
     /**
