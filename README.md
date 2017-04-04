@@ -18,8 +18,8 @@ $id = $pipedrive->notes->create(['content' => 'Note']);
 // Update
 $pipedrive->persons->find(1)->update(['name' => 'New name']);
 
-// Find person with phone '77' for organization with name 'Github'
-$person = $pipedrive->organizations->find(['name' => 'Github'])->persons->findAll(['phone' => '77']);
+// Find person with phone '777' for organization with name 'Github'
+$person = $pipedrive->organizations->find(['name' => 'Github'])->persons->findAll(['phone' => '777']);
 
 // Update all notes for matched organizations whole name is 'Github'
 $notes = $pipedrive->organizations->find(['name' => 'Github'])->notes;
