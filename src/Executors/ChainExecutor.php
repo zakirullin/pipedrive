@@ -6,13 +6,12 @@ class ChainExecutor extends Executor
 {
     protected function fetch()
     {
-        $query = $this->getQuery();
-        $parentType = $query->getPrev()->getEntityType();
-        $childType = $query->getEntityType();
+        $parentType = $this->getQuery()->getPrev()->getType();
+        $childType = $this->getQuery()->getType();
 
         $entities = [];
-        foreach ($query->getPrev()->getEntities() as $parentEntity) {
-            $childEntities = $query->getPipedrive()->getChilds($parentType, $parentEntity->id, $childType)->getEntities();
+        foreach ($this->getQuery()->getPrev()->getEntities() as $parentEntity) {
+            $childEntities = $this->getPipedrive()->getChilds($parentType, $parentEntity->id, $childType)->getEntities();
             $entities += $childEntities;
         }
 

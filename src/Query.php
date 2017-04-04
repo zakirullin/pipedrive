@@ -12,6 +12,7 @@ use Zakirullin\Pipedrive\Executors\Executor;
  * @property Query $persons
  * @property Query $notes
  * @property Query $products
+ * @property Query $users
  */
 class Query
 {
@@ -23,7 +24,7 @@ class Query
     /**
      * @var string
      */
-    protected $entityType;
+    protected $type;
 
     /**
      * @var array
@@ -46,7 +47,7 @@ class Query
     protected $next;
 
     /**
-     * @var int|array
+     * @var array
      */
     protected $condition;
 
@@ -57,14 +58,14 @@ class Query
 
     /**
      * @param Pipedrive $pipedrive
-     * @param string $entityType
+     * @param string $type
      * @param self $prev
      * @param self $root
      */
-    public function __construct($pipedrive, $entityType, $prev = null, $root = null)
+    public function __construct($pipedrive, $type, $prev = null, $root = null)
     {
         $this->setPipedrive($pipedrive);
-        $this->setEntityType($entityType);
+        $this->setType($type);
 
         if ($prev) {
             $prev->setNext($this);
@@ -98,7 +99,7 @@ class Query
     {
         $entity = (array)$entity;
 
-        return $this->getPipedrive()->create($this->getEntityType(), $entity)->getData()->id;
+        return $this->getPipedrive()->create($this->getType(), $entity)->getData()->id;
     }
 
     /**
@@ -119,7 +120,7 @@ class Query
             }
         }
 
-        return $this->getPipedrive()->update($this->getEntityType(), $entity)->getData()->id;
+        return $this->getPipedrive()->update($this->getType(), $entity)->getData()->id;
     }
 
     public function all()
@@ -175,14 +176,14 @@ class Query
     /**
      * @return string
      */
-    public function getEntityType()
+    public function getType()
     {
         return $this->entityType;
     }
 
-    public function setEntityType($entityType)
+    public function setType($type)
     {
-        $this->entityType = $entityType;
+        $this->entityType = $type;
 
         return $this;
     }
@@ -225,9 +226,22 @@ class Query
         return $this;
     }
 
+    /**
+     * @return array
+     */
     public function getCondition()
     {
         return $this->condition;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getConditionId()
+    {
+        $condition = $this->getCondition();
+
+        return isset($condition['id']) ? $condition['id'] : null;
     }
 
     /**
@@ -260,14 +274,14 @@ class Query
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @return static
      */
-    public function __get($entityType)
+    public function __get($type)
     {
         $root = $this->getRoot() ? $this->getRoot() : $this;
 
-        return new static($this->getPipedrive(), $entityType, $this, $root);
+        return new static($this->getPipedrive(), $type, $this, $root);
     }
 
     /**

@@ -12,7 +12,7 @@ class Response
     /**
      * @var string
      */
-    protected $entityType;
+    protected $type;
 
     /**
      * @var object
@@ -33,13 +33,13 @@ class Response
 
     /**
      * @param Pipedrive $pipedrive
-     * @param string $entityType
+     * @param string $type
      * @param object $response
      */
-    public function __construct($pipedrive, $entityType, $response)
+    public function __construct($pipedrive, $type, $response)
     {
         $this->pipedrive = $pipedrive;
-        $this->entityType = $entityType;
+        $this->entityType = $type;
         $this->response = $response;
 
         if ($this->response->success == 'true') {
@@ -70,18 +70,18 @@ class Response
     /**
      * @return string
      */
-    public function getEntityType()
+    public function getType()
     {
         return $this->entityType;
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @return $this
      */
-    public function setEntityType($entityType)
+    public function setType($type)
     {
-        $this->entityType = $entityType;
+        $this->entityType = $type;
 
         return $this;
     }
@@ -204,7 +204,7 @@ class Response
     {
         $entity = (array)$entity;
         foreach ($entity as $key => $value) {
-            $field = $this->getPipedrive()->getFieldByHash($this->getEntityType(), $key);
+            $field = $this->getPipedrive()->getFieldByHash($this->getType(), $key);
             unset($entity[$key]);
             $entity[$field] = $value;
         }
