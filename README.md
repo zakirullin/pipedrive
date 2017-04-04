@@ -1,6 +1,9 @@
 # API client for [Pipedrive](https://pipedrive.com)
-# Can be installed via Composer [package](https://packagist.org/packages/zakirullin/pipedrive)
-## Examples
+# Installation
+ You can install the package via ```composer require``` command:
+ 
+```composer require zakirullin/pipedrive```
+# Usage
 ```php
 <?php
 
@@ -30,3 +33,4 @@ foreach ($notes as $note) {
 }
 ```
 # API Docs can be found [here](https://developers.pipedrive.com/v1)
+
