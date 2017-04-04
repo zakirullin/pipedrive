@@ -1,6 +1,6 @@
 # API client for [Pipedrive](https://pipedrive.com)
 # Installation
- You can install the package via ```composer require``` command:
+ You can install the [package](https://packagist.org/packages/zakirullin/pipedrive) via ```composer require``` command:
  
 ```composer require zakirullin/pipedrive```
 # Usage
