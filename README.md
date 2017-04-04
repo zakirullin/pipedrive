@@ -11,7 +11,6 @@ $pipedrive = new Pipedrive('token');
 
 // Get by id
 $organization = $pipedrive->organizations->findOne(1);
-print_r($organization);
 
 // Create
 $id = $pipedrive->notes->create(['content' => 'Note']);
@@ -19,10 +18,10 @@ $id = $pipedrive->notes->create(['content' => 'Note']);
 // Update
 $pipedrive->persons->find(1)->update(['name' => 'New name']);
 
-// Find person with phone "777" for organization with name 'organization'
-$person = $pipedrive->organizations->find(['name' => 'Organization'])->persons->findAll(['phone' => '777']);
+// Find person with phone '77' for organization with name 'organization'
+$person = $pipedrive->organizations->find(['name' => 'Organization'])->persons->findAll(['phone' => '77']);
 
-// Update all notes for matched organizations whole name is testsite
+// Update all notes for matched organizations whole name is 'testsite'
 $notes = $pipedrive->organizations->find(['name' => 'Organization'])->notes;
 foreach ($notes as $note) {
     $note->content = 'Good news!';
