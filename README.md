@@ -1,4 +1,4 @@
-# Api client for [Pipedrive](https://pipedrive.com)
+# API client for [Pipedrive](https://pipedrive.com)
 ## Examples
 ```php
 <?php
@@ -23,3 +23,4 @@ foreach ($notes as $note) {
     $this->pipedrive->notes->update($note);
 }
 ```
+# API Docs can be found [here](https://developers.pipedrive.com/v1)
