@@ -1,4 +1,4 @@
-# PHP API client for [Pipedrive](https://pipedrive.com)
+# Api client for [Pipedrive](https://pipedrive.com)
 ## Examples
 ```php
 <?php

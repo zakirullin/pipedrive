@@ -1,7 +1,7 @@
 {
     "name": "zakirullin/pipedrive",
     "type": "library",
-    "description": "Pipedrive api wrapper",
+    "description": "Api client for pipedrive",
     "keywords": ["pipedrive", "crm", "api", "wrapper"],
     "homepage": "https://github.com/zakirullin/pipedrive",
     "authors": [
