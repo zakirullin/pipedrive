@@ -1,4 +1,5 @@
 # API client for [Pipedrive](https://pipedrive.com)
+# Can be installed via Composer [package](https://packagist.org/packages/zakirullin/pipedrive)
 ## Examples
 ```php
 <?php
