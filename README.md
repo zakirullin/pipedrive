@@ -13,11 +13,7 @@ $pipedrive = new Pipedrive('token');
 $organization = $pipedrive->users->findOne(1);
 print_r($organization);
 
-// Update
-$organization->name = 'testsite';
-$pipedrive->organizations->update($organization);
-
-// Little bit powerfull get Vasya person for organization with name 'testsite.com'
+// To little bit more powerfull get Vasya person for organization with name 'testsite.com'
 $person = $pipedrive->organizations->find(['name' => 'testsite'])->persons->findAll(['phone' => '777']);
 
 //And here where POWER comes - update all notes for matched organizations whole name is testsite
