@@ -6,12 +6,12 @@ use Zakirullin\Pipedrive\Interfaces\HttpClient as HttpClientInterface;
 use Zakirullin\Pipedrive\Http\HttpClient;
 
 /**
- * @property PipedriveQuery $organizations
- * @property PipedriveQuery $activities
- * @property PipedriveQuery $deals
- * @property PipedriveQuery $persons
- * @property PipedriveQuery $notes
- * @property PipedriveQuery $products
+ * @property Query $organizations
+ * @property Query $activities
+ * @property Query $deals
+ * @property Query $persons
+ * @property Query $notes
+ * @property Query $products
  */
 class Pipedrive
 {
@@ -134,9 +134,9 @@ class Pipedrive
     }
 
     /**
-     * @param string $entityQuery
+     * @param string $entityType
      * @param string $field
-     * @return null|string
+     * @return string|null
      */
     public function getFieldHash($entityType, $field)
     {
@@ -145,7 +145,7 @@ class Pipedrive
 
     /**
      * @param string $entityType
-     * @param string $field
+     * @param string $hash
      * @return string
      */
     public function getFieldByHash($entityType, $hash)
@@ -167,7 +167,7 @@ class Pipedrive
      */
     public function setFields($fields)
     {
-        $this->setFields = $fields;
+        $this->fields = $fields;
 
         return $this;
     }
@@ -223,7 +223,8 @@ class Pipedrive
     /**
      * @param string $entityType
      * @param int|null $id
-     * @return PipedriveResponse
+     * @param array $params
+     * @return Response
      */
     public function get($entityType, $id = null, $params = [])
     {
@@ -235,14 +236,14 @@ class Pipedrive
 
         $response = $this->getHttpClient()->json($url);
 
-        return new PipedriveResponse($this, $entityType, $response);
+        return new Response($this, $entityType, $response);
     }
 
     /**
      * @param string $entityType
      * @param int $id
      * @param string $childType
-     * @return PipedriveResponse
+     * @return Response
      */
     public function getChilds($entityType, $id, $childType)
     {
@@ -251,15 +252,15 @@ class Pipedrive
 
         $response = $this->getHttpClient()->json($url);
 
-        return new PipedriveResponse($this, $childType, $response);
+        return new Response($this, $childType, $response);
     }
 
     /**
      * @param string $entityType
      * @param string $field
-     * @param string $needle
+     * @param string $term
      * @param bool $isExact
-     * @return PipedriveResponse
+     * @return Response
      */
     public function find($entityType, $field, $term, $isExact = true)
     {
@@ -273,12 +274,13 @@ class Pipedrive
 
         $response = $this->getHttpClient()->json($url);
 
-        return new PipedriveResponse($this, $entityType, $response);
+        return new Response($this, $entityType, $response);
     }
 
     /**
      * @param string $entityType
-     * @param array $data
+     * @param array $entity
+     * @return Response
      */
     public function create($entityType, $entity)
     {
@@ -287,12 +289,13 @@ class Pipedrive
 
         $response = $this->getHttpClient()->json($url, 'post', $this->addHashFields($entityType, $entity));
 
-        return new PipedriveResponse($this, $entityType, $response);
+        return new Response($this, $entityType, $response);
     }
 
     /**
      * @param string $entityType
-     * @param string $data
+     * @param string $entity
+     * @return Response
      */
     public function update($entityType, $entity)
     {
@@ -301,7 +304,7 @@ class Pipedrive
 
         $response = $this->getHttpClient()->json($url, 'put', $this->addHashFields($entityType, $entity));
 
-        return new PipedriveResponse($this, $entityType, $response);
+        return new Response($this, $entityType, $response);
     }
 
     /**
@@ -320,9 +323,13 @@ class Pipedrive
     }
 
     // TODO excetpion
+    /**
+     * @param string $entityType
+     * @return Query
+     */
     public function __get($entityType)
     {
-        return new PipedriveQuery($this, $entityType);
+        return new Query($this, $entityType);
     }
 
     /**

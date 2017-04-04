@@ -6,14 +6,14 @@ use Zakirullin\Pipedrive\Exceptions\PipedriveException;
 use Zakirullin\Pipedrive\Executors\Executor;
 
 /**
- * @property PipedriveQuery organizations
- * @property PipedriveQuery activities
- * @property PipedriveQuery deals
- * @property PipedriveQuery persons
- * @property PipedriveQuery notes
- * @property PipedriveQuery products
+ * @property Query $organizations
+ * @property Query $activities
+ * @property Query $deals
+ * @property Query $persons
+ * @property Query $notes
+ * @property Query $products
  */
-class PipedriveQuery
+class Query
 {
     /**
      * @var Pipedrive
@@ -31,17 +31,17 @@ class PipedriveQuery
     protected $entities;
 
     /**
-     * @var static
+     * @var self
      */
     protected $root;
 
     /**
-     * @var static
+     * @var self
      */
     protected $prev;
 
     /**
-     * @var static
+     * @var self
      */
     protected $next;
 
@@ -55,10 +55,11 @@ class PipedriveQuery
      */
     protected $exactMatch;
 
-   /**
+    /**
      * @param Pipedrive $pipedrive
      * @param string $entityType
-     * @param PipedriveQuery|null $prev
+     * @param self $prev
+     * @param self $root
      */
     public function __construct($pipedrive, $entityType, $prev = null, $root = null)
     {
@@ -76,6 +77,11 @@ class PipedriveQuery
         return $this;
     }
 
+    /**
+     * @param $condition
+     * @param bool $exactMatch
+     * @return $this
+     */
     public function find($condition, $exactMatch = true)
     {
         $this->setCondition($condition);
@@ -97,6 +103,7 @@ class PipedriveQuery
 
     /**
      * @param mixed $entity
+     * @throws PipedriveException
      * @return int
      */
     public function update($entity)
@@ -137,7 +144,7 @@ class PipedriveQuery
 
     /**
      * @param Pipedrive $pipedrive
-     * @return this
+     * @return $this
      */
     public function setPipedrive($pipedrive)
     {
@@ -165,20 +172,23 @@ class PipedriveQuery
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getEntityType()
     {
-        return $this->type;
+        return $this->entityType;
     }
 
     public function setEntityType($entityType)
     {
-        $this->type = $entityType;
+        $this->entityType = $entityType;
 
         return $this;
     }
 
     /**
-     * @return null|PipedriveQuery
+     * @return null|Query
      */
     public function getPrev()
     {
@@ -186,7 +196,7 @@ class PipedriveQuery
     }
 
     /**
-     * @param null|PipedriveQuery $parent
+     * @param self|null $prev
      * @return $this
      */
     public function setPrev($prev)
@@ -197,7 +207,7 @@ class PipedriveQuery
     }
 
     /**
-     * @return PipedriveQuery
+     * @return Query
      */
     public function getNext()
     {
@@ -205,7 +215,7 @@ class PipedriveQuery
     }
 
     /**
-     * @param PipedriveQuery $next
+     * @param Query $next
      * @return $this
      */
     public function setNext($next)
@@ -261,7 +271,7 @@ class PipedriveQuery
     }
 
     /**
-     * @return PipedriveQuery
+     * @return Query
      */
     public function getRoot()
     {
@@ -269,7 +279,8 @@ class PipedriveQuery
     }
 
     /**
-     * @param static $root
+     * @param self $root
+     * @return $this
      */
     public function setRoot($root)
     {
@@ -278,11 +289,6 @@ class PipedriveQuery
         return $this;
     }
 
-    /**
-     * @param array $entities
-     * @param array|int $condition
-     * @return array
-     */
     public function filter()
     {
         $filteredEntities = [];

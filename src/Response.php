@@ -2,7 +2,7 @@
 
 namespace Zakirullin\Pipedrive;
 
-class PipedriveResponse
+class Response
 {
     /**
      * @var Pipedrive
@@ -15,7 +15,7 @@ class PipedriveResponse
     protected $entityType;
 
     /**
-     * @var string
+     * @var object
      */
     protected $response;
 
@@ -33,7 +33,8 @@ class PipedriveResponse
 
     /**
      * @param Pipedrive $pipedrive
-     * @param string $response
+     * @param string $entityType
+     * @param object $response
      */
     public function __construct($pipedrive, $entityType, $response)
     {
@@ -99,7 +100,7 @@ class PipedriveResponse
     public function getEntities()
     {
         $entities = [];
-        if ($this->isComplete($this->response)) {
+        if ($this->isComplete()) {
             $entities = $this->data;
             if (!is_array($entities)) {
                 $entities = [$entities->id => $entities];
@@ -150,6 +151,7 @@ class PipedriveResponse
 
     /**
      * @param callable $callback
+     * @return bool
      */
     public function walkAll($callback)
     {
@@ -184,7 +186,6 @@ class PipedriveResponse
     }
 
     /**
-     * @param object $response
      * @return bool
      */
     public function isComplete()
@@ -193,17 +194,6 @@ class PipedriveResponse
         $isMoreItems = $isPaginationExists && $this->getAdditionalData()->pagination->more_items_in_collection;
 
         return !$isMoreItems;
-    }
-
-    /**
-     * @return $this
-     */
-    protected function nextPage()
-    {
-        $start = $this->response->additional_data->pagination->next_start;
-        $params = ['limit' => static::PAGINATE_STEP, 'start' => $start];
-
-        return $this->getPipedrive()->get($this->getEntityType(), null, $params);
     }
 
     /**

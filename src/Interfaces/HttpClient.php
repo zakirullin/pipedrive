@@ -10,5 +10,5 @@ interface HttpClient
      * @param array|string $data
      * @return mixed
      */
-    public function json($url, $method, $data);
+    public function json($url, $method = 'GET', $data = []);
 }
