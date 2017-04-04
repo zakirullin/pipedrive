@@ -4,6 +4,7 @@ namespace Zakirullin\Pipedrive;
 
 use Zakirullin\Pipedrive\Interfaces\HttpClient as HttpClientInterface;
 use Zakirullin\Pipedrive\Http\HttpClient;
+use Zakirullin\Pipedrive\Exceptions\Exception;
 
 /**
  * @property Query $organizations

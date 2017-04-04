@@ -2,7 +2,7 @@
 
 namespace Zakirullin\Pipedrive;
 
-use Zakirullin\Pipedrive\Exceptions\PipedriveException;
+use Zakirullin\Pipedrive\Exceptions\Exception;
 use Zakirullin\Pipedrive\Executors\Executor;
 
 /**
@@ -104,8 +104,8 @@ class Query
 
     /**
      * @param mixed $entity
-     * @throws PipedriveException
      * @return int
+     * @throws Exception
      */
     public function update($entity)
     {
@@ -116,7 +116,7 @@ class Query
             if (isset($condition['id'])) {
                 $entity['id'] = $condition['id'];
             } else {
-                throw new PipedriveException('Cannot update without id.');
+                throw new Exception('Cannot update without id.');
             }
         }
 
