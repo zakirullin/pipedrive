@@ -12,6 +12,7 @@ use Zakirullin\Pipedrive\Http\HttpClient;
  * @property Query $persons
  * @property Query $notes
  * @property Query $products
+ * @property Query $users
  */
 class Pipedrive
 {
@@ -134,25 +135,25 @@ class Pipedrive
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param string $field
      * @return string|null
      */
-    public function getFieldHash($entityType, $field)
+    public function getFieldHash($type, $field)
     {
-        return isset($this->fields[$entityType][$field]) ? $this->fields[$entityType][$field] : $field;
+        return isset($this->fields[$type][$field]) ? $this->fields[$type][$field] : $field;
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param string $hash
      * @return string
      */
-    public function getFieldByHash($entityType, $hash)
+    public function getFieldByHash($type, $hash)
     {
         $fields = $this->getFields();
-        if (isset($fields[$entityType])) {
-            $key = array_search($hash, $fields[$entityType]);
+        if (isset($fields[$type])) {
+            $key = array_search($hash, $fields[$type]);
             if ($key !== false) {
                 return $key;
             }
@@ -181,16 +182,16 @@ class Pipedrive
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @return string
      */
-    public function getIdField($entityType)
+    public function getIdField($type)
     {
         $idFields = $this->getIdFields();
-        if (isset($idFields[$entityType])) {
-            return $idFields[$entityType];
+        if (isset($idFields[$type])) {
+            return $idFields[$type];
         } else {
-            return $this->getSingularType($entityType) . '_id';
+            return $this->getSingularType($type) . '_id';
         }
     }
 
@@ -221,14 +222,14 @@ class Pipedrive
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param int|null $id
      * @param array $params
      * @return Response
      */
-    public function get($entityType, $id = null, $params = [])
+    public function get($type, $id = null, $params = [])
     {
-        $action = $entityType;
+        $action = $type;
         if ($id !== null) {
             $action .= "/$id";
         }
@@ -236,18 +237,18 @@ class Pipedrive
 
         $response = $this->getHttpClient()->json($url);
 
-        return new Response($this, $entityType, $response);
+        return new Response($this, $type, $response);
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param int $id
      * @param string $childType
      * @return Response
      */
-    public function getChilds($entityType, $id, $childType)
+    public function getChilds($type, $id, $childType)
     {
-        $action = "$entityType/$id/$childType";
+        $action = "$type/$id/$childType";
         $url = $this->getApiUrl($action);
 
         $response = $this->getHttpClient()->json($url);
@@ -256,55 +257,55 @@ class Pipedrive
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param string $field
      * @param string $term
      * @param bool $isExact
      * @return Response
      */
-    public function find($entityType, $field, $term, $isExact = true)
+    public function find($type, $field, $term, $isExact = true)
     {
         $action = "searchResults/field";
         $params['term'] = trim(mb_strtolower($term));
-        $params['field_type'] = $this->getSearchField($entityType);
-        $params['field_key'] = $this->getFieldHash($entityType, $field);
+        $params['field_type'] = $this->getSearchField($type);
+        $params['field_key'] = $this->getFieldHash($type, $field);
         $params['return_item_ids'] = 1;
         $params['exact_match'] = $isExact;
         $url = $this->getApiUrl($action, $params);
 
         $response = $this->getHttpClient()->json($url);
 
-        return new Response($this, $entityType, $response);
+        return new Response($this, $type, $response);
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param array $entity
      * @return Response
      */
-    public function create($entityType, $entity)
+    public function create($type, $entity)
     {
-        $action = "$entityType";
+        $action = "$type";
         $url = $this->getApiUrl($action);
 
-        $response = $this->getHttpClient()->json($url, 'post', $this->addHashFields($entityType, $entity));
+        $response = $this->getHttpClient()->json($url, 'post', $this->addHashFields($type, $entity));
 
-        return new Response($this, $entityType, $response);
+        return new Response($this, $type, $response);
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @param string $entity
      * @return Response
      */
-    public function update($entityType, $entity)
+    public function update($type, $entity)
     {
-        $action = "{$entityType}/{$entity['id']}";
+        $action = "{$type}/{$entity['id']}";
         $url = $this->getApiUrl($action);
 
-        $response = $this->getHttpClient()->json($url, 'put', $this->addHashFields($entityType, $entity));
+        $response = $this->getHttpClient()->json($url, 'put', $this->addHashFields($type, $entity));
 
-        return new Response($this, $entityType, $response);
+        return new Response($this, $type, $response);
     }
 
     /**
@@ -324,36 +325,36 @@ class Pipedrive
 
     // TODO excetpion
     /**
-     * @param string $entityType
+     * @param string $type
      * @return Query
      */
-    public function __get($entityType)
+    public function __get($type)
     {
-        return new Query($this, $entityType);
+        return new Query($this, $type);
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @return string
      */
-    public function getSearchField($entityType)
+    public function getSearchField($type)
     {
-        return $this->getSingularType($entityType) . 'Field';
+        return $this->getSingularType($type) . 'Field';
     }
 
     /**
-     * @param string $entityType
+     * @param string $type
      * @return string
      */
-    protected function getSingularType($entityType)
+    protected function getSingularType($type)
     {
-        return substr($entityType, 0, -1);
+        return substr($type, 0, -1);
     }
 
-    protected function addHashFields($entityType, $entity)
+    protected function addHashFields($type, $entity)
     {
         foreach ($entity as $key => $value) {
-            $field = $this->getFieldHash($entityType, $key);
+            $field = $this->getFieldHash($type, $key);
             unset($entity[$key]);
             $entity[$field] = $value;
         }
