@@ -1,4 +1,4 @@
-# PHP wrapper for [Pipedrive](https://pipedrive.com) API
+# PHP API client for [Pipedrive](https://pipedrive.com)
 ## Examples
 ```php
 <?php
