@@ -13,7 +13,7 @@ class GetChildsExecutor extends Executor
         return $this->getPipedrive()->getChilds($parentType, $id, $childType)->getEntities();
     }
 
-    protected function getTargetQuery()
+    protected function getRootQuery()
     {
         return $this->getQuery()->getNext();
     }

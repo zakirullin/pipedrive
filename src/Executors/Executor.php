@@ -54,7 +54,7 @@ abstract class Executor
      */
     public function execute()
     {
-        $query = $this->getTargetQuery();
+        $query = $this->getRootQuery();
         $query->setEntities($this->fetch());
         $query->filter();
 
@@ -105,9 +105,9 @@ abstract class Executor
     protected abstract function fetch();
 
     /**
-     * @return Query|null
+     * @return Query
      */
-    protected function getTargetQuery()
+    protected function getRootQuery()
     {
         return $this->getQuery();
     }
