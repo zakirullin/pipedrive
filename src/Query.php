@@ -79,7 +79,7 @@ class Query
     }
 
     /**
-     * @param $condition
+     * @param array|int $condition
      * @param bool $exactMatch
      * @return $this
      */
@@ -92,6 +92,26 @@ class Query
     }
 
     /**
+     * @param int $condition
+     */
+    public function findOne($condition)
+    {
+        $this->setCondition($condition);
+
+        return $this->one();
+    }
+
+    /**
+     * @param array $condition
+     */
+    public function findAll($condition)
+    {
+        $this->setCondition($condition);
+
+        return $this->all();
+    }
+
+    /**
      * @param mixed $entity
      * @return int
      */
@@ -99,7 +119,7 @@ class Query
     {
         $entity = (array)$entity;
 
-        return $this->getPipedrive()->create($this->getType(), $entity)->getData()->id;
+        return $this->getPipedrive()->create($this->getType(), $entity)->getEntity()->id;
     }
 
     /**
@@ -120,7 +140,7 @@ class Query
             }
         }
 
-        return $this->getPipedrive()->update($this->getType(), $entity)->getData()->id;
+        return $this->getPipedrive()->update($this->getType(), $entity)->getEntity()->id;
     }
 
     public function all()
@@ -307,9 +327,8 @@ class Query
     {
         $filteredEntities = [];
         $condition = $this->getCondition();
-        $entities = $this->getEntities();
         if ($condition && is_array($condition)) {
-            foreach ($entities as $entity) {
+            foreach ($this->getEntities() as $entity) {
                 foreach ($condition as $field => $term) {
                     // TODO add exactly match
                     $value = $entity->$field;
@@ -330,13 +349,13 @@ class Query
                 }
             }
         } else if ($condition) {
-            foreach ($entities as $entity) {
+            foreach ($this->getEntities() as $entity) {
                 if ($entity->id == $condition) {
                     $filteredEntities[] = $entity;
                 }
             }
         } else {
-            $filteredEntities = $entities;
+            $filteredEntities = $this->getEntities();
         }
 
         $this->setEntities($filteredEntities);

@@ -56,6 +56,7 @@ class PipedriveTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals(1, $organization->id);
         $this->assertEquals('organization1', $organization->name);
+        $this->assertEquals('value', $organization->field);
     }
 
     public function testUnsuccessfullSearch()
@@ -100,6 +101,7 @@ class PipedriveTest extends \PHPUnit_Framework_TestCase
             $workEmails->value = "email$id@$id.com";
             $organization->emails = ['work' => $workEmails];
             $organization->hash = 'custom';
+            $organization->field = 'value';
             $db['organizations'][$id] = $organization;
 
             $person = new \stdClass();
