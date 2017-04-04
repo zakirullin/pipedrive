@@ -4,6 +4,7 @@
     "description": "Api client for pipedrive",
     "keywords": ["pipedrive", "crm", "api", "wrapper"],
     "homepage": "https://github.com/zakirullin/pipedrive",
+    "license": "MIT",
     "authors": [
         {
             "name": "Artem Zakirullin",
