@@ -12,6 +12,11 @@ class FindExecutor extends Executor
         $this->getQuery()->setCondition($condition);
         $type = $this->getQuery()->getType();
 
-        return $this->getPipedrive()->find($type, $field, $term)->getEntities();
+        $entities = $this->getPipedrive()->find($type, $field, $term)->getEntities();
+        foreach ($entities as &$entity) {
+            $entity = $this->getPipedrive()->get($type, $entity->id)->getEntity();
+        }
+
+        return $entities;
     }
 }

@@ -37,16 +37,16 @@ abstract class Executor
         $condition = $query->getCondition();
         if ($query->getPrev()) {
             return new ChainExecutor($query);
-        } else if ($condition) {
-            $hasId = is_numeric($condition) || isset($condition['id']);
+        } else {
+            $hasId = $query->getConditionId();
             if ($hasId && $query->getNext()) {
                 return new GetChildsExecutor($query);
+            } else if ($hasId || !$condition) {
+                return new GetExecutor($query);
             } else {
                 return new FindExecutor($query);
             }
         }
-
-        return new GetExecutor($query);
     }
 
     /**
