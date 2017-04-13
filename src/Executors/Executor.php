@@ -36,7 +36,7 @@ abstract class Executor
     {
         $condition = $query->getCondition();
         if ($query->getPrev()) {
-            return new ChainExecutor($query);
+            return new QueryExecutor($query);
         } else {
             $hasId = $query->getConditionId();
             if ($hasId && $query->getNext()) {

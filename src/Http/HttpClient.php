@@ -7,6 +7,11 @@ use Zakirullin\Pipedrive\Exceptions\Exception;
 
 class HttpClient implements HttpClientInterface
 {
+    public function __construct()
+    {
+        return $this;
+    }
+
     /**
      * @param string $url
      * @param string $method
@@ -36,11 +41,8 @@ class HttpClient implements HttpClientInterface
             throw new Exception("HTTP $method to $url failed with: HTTP $code $error, body: $body, response: $response");
         }
 
-        return json_decode($response);
-    }
+        curl_close($ch);
 
-    public function __construct()
-    {
-        return $this;
+        return json_decode($response);
     }
 }

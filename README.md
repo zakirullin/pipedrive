@@ -2,7 +2,7 @@
 # Installation
  You can install the [package](https://packagist.org/packages/zakirullin/pipedrive) via ```composer require``` command:
  
-```composer require zakirullin/pipedrive```
+```$ composer require zakirullin/pipedrive```
 # Usage
 ```php
 <?php

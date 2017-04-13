@@ -2,7 +2,7 @@
 
 namespace Zakirullin\Pipedrive\Executors;
 
-class ChainExecutor extends Executor
+class QueryExecutor extends Executor
 {
     protected function fetch()
     {
